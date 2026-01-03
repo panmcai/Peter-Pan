@@ -37,8 +37,11 @@ export default function Home() {
   const [visitorCount, setVisitorCount] = useState(0);
   const [currentTheme, setCurrentTheme] = useState('default');
   const [showThemeSelector, setShowThemeSelector] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
+
     // 从localStorage获取或初始化访问计数
     const stored = localStorage.getItem('visitorCount');
     const count = stored ? parseInt(stored) : Math.floor(Math.random() * 1000) + 500;
@@ -169,7 +172,7 @@ export default function Home() {
         <div className="mx-auto max-w-6xl">
           <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
             {[
-              { label: '总访问量', value: visitorCount.toLocaleString(), icon: Users },
+              { label: '总访问量', value: isMounted ? visitorCount.toLocaleString() : '...', icon: Users },
               { label: '开源项目', value: '12+', icon: Code },
               { label: '技术文章', value: '36+', icon: BookOpen },
               { label: '实用工具', value: '8+', icon: Wrench },

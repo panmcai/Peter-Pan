@@ -11,26 +11,62 @@ const path = require('path');
 const OUT_DIR = path.join(__dirname, '..', 'out');
 
 /**
+ * 计算从当前文件到 out/ 目录的相对路径
+ * @param {string} filePath - 当前文件的完整路径
+ * @returns {string} 相对路径前缀（如 "../", "../../", 或 ""）
+ */
+function getRelativePathPrefix(filePath) {
+  const relativePath = path.relative(OUT_DIR, filePath);
+  const depth = relativePath.split(path.sep).length - 1; // 减1是因为文件名本身也算一层
+
+  if (depth === 0) {
+    // 在根目录（如 out/index.html）
+    return '';
+  } else {
+    // 在子目录中（如 out/about/index.html -> "../"）
+    return '../'.repeat(depth);
+  }
+}
+
+/**
  * 修复单个 HTML 文件中的路径
  */
 function fixHtmlFile(filePath) {
-  console.log(`处理: ${path.basename(filePath)}`);
+  const relativePath = path.relative(OUT_DIR, filePath);
+  console.log(`处理: ${relativePath}`);
 
+  const prefix = getRelativePathPrefix(filePath);
   let content = fs.readFileSync(filePath, 'utf8');
 
-  // 替换 CSS 路径：/_next/static/... -> ./_next/static/...
-  content = content.replace(/href="\/_next\/static\//g, 'href="./_next/static/');
+  // 替换 CSS 路径：/_next/static/... -> {prefix}_next/static/...
+  content = content.replace(/href="\/_next\/static\//g, `href="${prefix}_next/static/`);
 
-  // 替换 JS 路径：/_next/static/... -> ./_next/static/...
-  content = content.replace(/src="\/_next\/static\//g, 'src="./_next/static/');
-  content = content.replace(/"\/_next\/static\//g, '"./_next/static/');
+  // 替换 JS 路径：/_next/static/... -> {prefix}_next/static/...
+  content = content.replace(/src="\/_next\/static\//g, `src="${prefix}_next/static/`);
+  content = content.replace(/"\/_next\/static\//g, `"${prefix}_next/static/`);
 
-  // 替换字体路径：/_next/static/... -> ./_next/static/...
-  content = content.replace(/url\(\/_next\/static\//g, 'url(./_next/static/');
+  // 替换字体路径：/_next/static/... -> {prefix}_next/static/...
+  content = content.replace(/url\(\/_next\/static\//g, `url(${prefix}_next/static/`);
 
-  // 替换图片路径
-  content = content.replace(/src="\/(?!_next)/g, 'src="$1');
-  content = content.replace(/href="\/(?!_next)/g, 'href="$1');
+  // 替换 favicon 路径
+  content = content.replace(/href="\/favicon\.ico/g, `href="${prefix}favicon.ico`);
+
+  // 替换根路径 / -> {prefix}index.html 或 {prefix}
+  content = content.replace(/href="\/"/g, `href="${prefix}index.html"`);
+
+  // 替换页面链接路径：/about -> {prefix}about.html, /blog -> {prefix}blog.html 等
+  content = content.replace(/href="\/(?!_next)([^"]+)"/g, (match, route) => {
+    // 跳过外部链接和已有协议的链接
+    if (route.startsWith('http') || route.startsWith('//')) {
+      return match;
+    }
+    return `href="${prefix}${route}.html"`;
+  });
+
+  // 替换图片路径（非 _next 开头的）
+  content = content.replace(/src="\/(?!_next)([^"]+)"/g, (match, imgPath) => {
+    return `src="${prefix}${imgPath}"`;
+  });
 
   fs.writeFileSync(filePath, content, 'utf8');
 }
