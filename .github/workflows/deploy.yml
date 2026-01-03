@@ -27,15 +27,27 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'pnpm'
       
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v4
         with:
-          version: latest
-      
-      - name: Install pnpm
-        run: npm install -g pnpm
+          version: 9 # 指定 pnpm 版本，如 9.x (可选，推荐)
+          run_install: false # 我们将在下一步手动安装依赖
+
+      # 可选但推荐：配置 pnpm 缓存以加速构建
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
         
       - name: Install dependencies
         run: pnpm install
