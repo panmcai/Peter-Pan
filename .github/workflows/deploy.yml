@@ -84,7 +84,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           
           # 构建输出目录（根据你的项目修改）
-          publish_dir: ./out      # Vue/Vite/React 默认
+          publish_dir: ./.next      
           # publish_dir: ./build   # Create React App 默认
           # publish_dir: ./out     # Next.js 默认
           # publish_dir: ./docs/.vitepress/dist  # VitePress
@@ -101,5 +101,3 @@ jobs:
           # 可选：使用自定义域名
           # cname: example.com
           
-          # 可选：排除文件
-          exclude_assets: '.github/*,.git/*'
