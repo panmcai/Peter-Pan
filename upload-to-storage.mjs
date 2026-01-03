@@ -1,5 +1,6 @@
 import { S3Storage } from 'coze-coding-dev-sdk';
 import fs from 'fs';
+import path from 'path';
 
 const storage = new S3Storage({
   bucketName: process.env.COZE_BUCKET_NAME,
@@ -8,10 +9,24 @@ const storage = new S3Storage({
 
 async function uploadAndGenerateUrl() {
   try {
-    const filePath = '/tmp/personal-website-20251231-165919.tar.gz';
-    const fileName = 'personal-website-source.tar.gz';
+    // 获取最新的打包文件
+    const files = fs.readdirSync('/tmp')
+      .filter(f => f.startsWith('personal-website-static-final-') && f.endsWith('.tar.gz'))
+      .sort((a, b) => {
+        const statA = fs.statSync(path.join('/tmp', a));
+        const statB = fs.statSync(path.join('/tmp', b));
+        return statB.mtime - statA.mtime;
+      });
+
+    if (files.length === 0) {
+      throw new Error('未找到打包文件');
+    }
+
+    const filePath = path.join('/tmp', files[0]);
+    const fileName = 'personal-website-static-final.tar.gz';
 
     console.log('正在读取文件...');
+    console.log(`文件: ${path.basename(filePath)}`);
     const fileContent = fs.readFileSync(filePath);
     console.log(`文件大小: ${(fileContent.length / 1024).toFixed(2)} KB`);
 
