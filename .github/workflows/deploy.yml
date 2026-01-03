@@ -86,14 +86,14 @@ jobs:
           # 构建输出目录（根据你的项目修改）
           publish_dir: ./out
           
-          # # 可选：部署到特定分支
-          # publish_branch: gh-pages  # 默认
+          # 可选：部署到特定分支
+          publish_branch: gh-pages  # 默认
           
-          # # 可选：保持部署历史
-          # force_orphan: false
+          # 可选：保持部署历史
+          force_orphan: false
           
-          # # 可选：自定义提交信息
-          # commit_message: ${{ github.event.head_commit.message || 'Deploy to GitHub Pages' }}
+          # 可选：自定义提交信息
+          commit_message: ${{ github.event.head_commit.message || 'Deploy to GitHub Pages' }}
           
           # 可选：使用自定义域名
           # cname: example.com
