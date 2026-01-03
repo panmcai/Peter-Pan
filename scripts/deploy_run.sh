@@ -2,5 +2,5 @@
 set -Eeuo pipefail
 
 DEPLOY_RUN_PORT=8888
-
- pnpm run start --port ${DEPLOY_RUN_PORT}
+echo "Starting HTTP service on port ${DEPLOY_RUN_PORT} for deploy..."
+pnpm run start --port ${DEPLOY_RUN_PORT}
