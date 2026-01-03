@@ -61,7 +61,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./.next  # Next.js静态导出目录，请根据实际情况调整
+          path: ./out 
 
   deploy:
     environment:
