@@ -54,3 +54,4 @@ output.log
 *.log
 *.log.*
 logs/
+out/

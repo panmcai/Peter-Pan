@@ -7,8 +7,8 @@ import Footer from "@/components/Footer";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Developer.IO - 高级软件工程师个人网站",
-  description: "专注于C++和Python开发的高级软件工程师个人作品集、博客和技术分享平台",
+  title: "Peter·Pan的个人网站",
+  description: "专注于C++和CUDA的高性能开发个人作品集、博客和技术分享平台",
 };
 
 export default function RootLayout({

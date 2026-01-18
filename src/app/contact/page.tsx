@@ -143,7 +143,7 @@ export default function Contact() {
     {
       name: 'Email',
       icon: Mail,
-      href: 'mailto:your.email@example.com',
+      href: 'mailto:panmcai@foxmail.com',
       description: '发送邮件联系我',
       color: 'hover:bg-red-500 dark:hover:bg-red-600',
     },
@@ -183,7 +183,7 @@ export default function Contact() {
                       电子邮箱
                     </h3>
                     <p className="text-zinc-600 dark:text-zinc-400">
-                      your.email@example.com
+                      panmcai@foxmail.com
                     </p>
                   </div>
                 </div>
@@ -194,7 +194,7 @@ export default function Contact() {
                       所在地
                     </h3>
                     <p className="text-zinc-600 dark:text-zinc-400">
-                      北京, 中国
+                      上海, 中国
                     </p>
                   </div>
                 </div>

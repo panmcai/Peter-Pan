@@ -22,7 +22,7 @@ export default function Navbar() {
       <div className="mx-auto max-w-6xl px-4">
         <div className="flex h-16 items-center justify-between">
           <Link href="/" className="text-xl font-bold text-zinc-900 dark:text-zinc-50">
-            Developer<span className="text-blue-600 dark:text-blue-400">.IO</span>
+            Peter<span className="text-blue-600 dark:text-blue-400">.Pan</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -31,11 +31,10 @@ export default function Navbar() {
               <Link
                 key={item.path}
                 href={item.path}
-                className={`text-sm font-medium transition-colors hover:text-blue-600 dark:hover:text-blue-400 ${
-                  pathname === item.path
+                className={`text-sm font-medium transition-colors hover:text-blue-600 dark:hover:text-blue-400 ${pathname === item.path
                     ? 'text-blue-600 dark:text-blue-400'
                     : 'text-zinc-600 dark:text-zinc-400'
-                }`}
+                  }`}
               >
                 {item.name}
               </Link>
@@ -61,11 +60,10 @@ export default function Navbar() {
                   key={item.path}
                   href={item.path}
                   onClick={() => setIsOpen(false)}
-                  className={`block rounded-lg px-3 py-2 text-base font-medium transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-900 ${
-                    pathname === item.path
+                  className={`block rounded-lg px-3 py-2 text-base font-medium transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-900 ${pathname === item.path
                       ? 'bg-zinc-100 text-blue-600 dark:bg-zinc-900 dark:text-blue-400'
                       : 'text-zinc-600 dark:text-zinc-400'
-                  }`}
+                    }`}
                 >
                   {item.name}
                 </Link>

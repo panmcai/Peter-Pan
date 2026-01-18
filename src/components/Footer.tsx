@@ -8,7 +8,7 @@ export default function Footer() {
       <div className="mx-auto max-w-6xl px-4 py-8">
         <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
-            © {new Date().getFullYear()} Developer.IO. All rights reserved.
+            © {new Date().getFullYear()} Peter·Pan. All rights reserved.
           </p>
           <div className="flex space-x-4">
             <a
@@ -39,7 +39,7 @@ export default function Footer() {
               <Twitter size={20} />
             </a>
             <a
-              href="mailto:your.email@example.com"
+              href="mailto:panmcai@foxmail.com"
               className="text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
               aria-label="Email"
             >

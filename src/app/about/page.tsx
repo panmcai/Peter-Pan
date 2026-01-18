@@ -27,15 +27,15 @@ export default function About() {
   }, []);
 
   const skills = [
-    { category: '编程语言', items: ['C++ (17/20)', 'Python', 'JavaScript/TypeScript', 'SQL'] },
-    { category: '框架与工具', items: ['Docker', 'Git', 'CMake', 'Makefiles'] },
-    { category: '开发领域', items: ['后端开发', '系统编程', '高性能计算', '数据工程'] },
+    { category: '编程语言', items: ['C/C++', 'Python', 'CUDA', 'QT', 'SQL'] },
+    { category: '框架与工具', items: ['Docker', 'Git', 'CMake', 'Makefiles', 'GTest', 'AI Agent'] },
+    { category: '开发领域', items: ['后端开发', '高性能计算', , "算子与算法优化", '数据工程'] },
   ];
 
   const experience = [
     {
       period: '2022 - 至今',
-      title: '高级软件工程师',
+      title: '高性能开发工程师',
       company: '某知名科技公司',
       description: '负责核心系统架构设计与优化，领导团队完成多个关键项目，提升系统性能40%以上。',
       highlights: ['主导系统重构', '性能优化', '团队管理'],
@@ -60,14 +60,14 @@ export default function About() {
     {
       name: '高性能计算框架',
       description: '基于C++开发的高性能并行计算框架，支持多线程和GPU加速',
-      tech: ['C++20', 'CUDA', 'OpenMP'],
+      tech: ['C++', 'CUDA', 'OpenMP'],
       stars: '1.2k',
       link: '#',
     },
     {
       name: 'Python工具库',
       description: '提供常用数据结构和算法的Python工具库，简化日常开发工作',
-      tech: ['Python', 'NumPy', 'Cython'],
+      tech: ['Python', 'NumPy', 'Cython', 'Pybind'],
       stars: '850',
       link: '#',
     },
@@ -96,7 +96,7 @@ export default function About() {
             <div className="mb-6 h-32 w-32 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 md:mb-0 md:mr-8 md:h-40 md:w-40" />
             <div>
               <h1 className="mb-4 text-4xl font-bold text-zinc-900 dark:text-zinc-50">
-                高级软件工程师
+                高性能开发工程师
               </h1>
               <p className="mb-4 text-lg text-zinc-600 dark:text-zinc-400">
                 专注于 C++ 和 Python 开发，热爱技术，追求卓越
@@ -104,11 +104,11 @@ export default function About() {
               <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-zinc-600 dark:text-zinc-400 md:justify-start">
                 <div className="flex items-center gap-2">
                   <MapPin size={16} />
-                  <span>北京, 中国</span>
+                  <span>上海, 中国</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Mail size={16} />
-                  <span>your.email@example.com</span>
+                  <span>panmcai@foxmail.com</span>
                 </div>
               </div>
             </div>
@@ -150,9 +150,8 @@ export default function About() {
                   <button
                     key={index}
                     onClick={() => setCurrentSlide(index)}
-                    className={`h-2 w-2 rounded-full transition-colors ${
-                      index === currentSlide ? 'bg-white' : 'bg-white/40'
-                    }`}
+                    className={`h-2 w-2 rounded-full transition-colors ${index === currentSlide ? 'bg-white' : 'bg-white/40'
+                      }`}
                     aria-label={`Go to slide ${index + 1}`}
                   />
                 ))}
@@ -239,13 +238,13 @@ export default function About() {
               </div>
               <div>
                 <h3 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
-                  计算机科学与技术硕士
+                  电气自动化
                 </h3>
                 <p className="text-zinc-600 dark:text-zinc-400">
-                  某知名大学 · 2016 - 2018
+                  湖北工业大学 · 2012 - 2016
                 </p>
                 <p className="mt-2 text-zinc-600 dark:text-zinc-400">
-                  专注于高性能计算和分布式系统研究，发表多篇学术论文
+                  致力于解决复杂系统的自动控制与优化问题
                 </p>
               </div>
             </div>
@@ -261,7 +260,7 @@ export default function About() {
               开源项目
             </h2>
             <a
-              href="https://github.com"
+              href="https://github.com/panmcai"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"

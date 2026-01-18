@@ -112,11 +112,10 @@ export default function Home() {
                 <button
                   key={theme.id}
                   onClick={() => handleThemeChange(theme.id)}
-                  className={`flex items-center gap-3 rounded-lg px-4 py-2 text-sm transition-colors ${
-                    currentTheme === theme.id
-                      ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
-                      : 'text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800'
-                  }`}
+                  className={`flex items-center gap-3 rounded-lg px-4 py-2 text-sm transition-colors ${currentTheme === theme.id
+                    ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                    : 'text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800'
+                    }`}
                 >
                   <div className={`h-4 w-4 rounded-full bg-gradient-to-r ${theme.class.split(' ').slice(0, 2).join(' ')}`} />
                   {theme.name}
@@ -139,9 +138,9 @@ export default function Home() {
         <div className="mx-auto max-w-6xl">
           <div className="text-center">
             <h1 className="mb-6 text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-6xl">
-              你好，我是
+              2026
               <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                {' '}高级软件工程师
+                {', '}All In AI
               </span>
             </h1>
             <p className="mx-auto mb-8 max-w-2xl text-lg text-zinc-600 dark:text-zinc-400">
