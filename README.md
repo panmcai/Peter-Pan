@@ -6,7 +6,7 @@
 - 精通CUDA编程，熟悉llvm编译器，精度CUDA TCore编程算法，例如GEMM,Flash Attention等
 - All In AI, 习惯使用AI Agent协助开发，提升效率
 
-# 技术博客：
+# 技术分享：
 [CSDN @ Peter·Pan爱编程](https://blog.csdn.net/weixin_42125125?spm=1000.2115.3001.5343) | [个人网站](https://panmcai.github.io/panmcai/)
 
 # 免费工具推荐
