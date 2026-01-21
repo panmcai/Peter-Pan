@@ -73,10 +73,7 @@ export default function Home() {
   ];
 
   const featuredTools = [
-    { name: 'Python包管理工具', usage: 85, icon: '🐍', link: 'https://pypi.org/' },
     { name: '浮点数可视化工具', usage: 75, icon: '🔢', link: 'https://panmcai.github.io/FloatVisualizer/', isSelfDeveloped: true },
-    { name: 'C++代码格式化', usage: 78, icon: '⚡', link: 'https://clang.llvm.org/docs/ClangFormat.html' },
-    { name: '性能分析器', usage: 72, icon: '📊', link: 'https://py-spy.readthedocs.io/' },
   ];
 
   const handleThemeChange = (themeId: string) => {
@@ -154,12 +151,11 @@ export default function Home() {
       {/* Stats Section */}
       <section className="border-t border-zinc-200 bg-white px-4 py-12 dark:border-zinc-800 dark:bg-zinc-900/50">
         <div className="mx-auto max-w-6xl">
-          <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-6 md:grid-cols-3">
             {[
               { label: '总访问量', value: isMounted ? visitorCount.toLocaleString() : '...', icon: Users },
-              { label: '开源项目', value: '12+', icon: Code },
-              { label: '技术文章', value: '36+', icon: BookOpen },
-              { label: '实用工具', value: '8+', icon: Wrench },
+              { label: '实用工具', value: '10', icon: Wrench },
+              { label: '技术文章', value: '6', icon: BookOpen },
             ].map((stat, index) => (
               <div key={index} className="text-center">
                 <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
@@ -210,7 +206,7 @@ export default function Home() {
         <div className="mx-auto max-w-6xl">
           <div className="mb-12 flex items-center justify-between">
             <h2 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">
-              热门工具推荐
+              自研工具推荐
             </h2>
             <Link
               href="/tools"
