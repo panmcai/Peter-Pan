@@ -14,7 +14,7 @@ export default function Tools() {
       icon: '🐍',
       category: 'Python',
       usage: 85,
-      link: '#',
+      link: 'https://pypi.org/',
       isNew: false,
     },
     {
@@ -23,7 +23,7 @@ export default function Tools() {
       icon: '⚡',
       category: 'C++',
       usage: 78,
-      link: '#',
+      link: 'https://clang.llvm.org/docs/ClangFormat.html',
       isNew: true,
     },
     {
@@ -32,7 +32,7 @@ export default function Tools() {
       icon: '📊',
       category: 'DevOps',
       usage: 72,
-      link: '#',
+      link: 'https://py-spy.readthedocs.io/',
       isNew: false,
     },
     {
@@ -41,7 +41,7 @@ export default function Tools() {
       icon: '🐳',
       category: 'DevOps',
       usage: 68,
-      link: '#',
+      link: 'https://www.docker.com/',
       isNew: false,
     },
   ];
@@ -63,8 +63,8 @@ export default function Tools() {
       icon: '⚡',
       category: 'C++',
       stars: 850,
-      link: '#',
-      isExternal: false,
+      link: 'https://clang.llvm.org/docs/ClangFormat.html',
+      isExternal: true,
       tags: ['C++', '代码格式化', '开发工具'],
     },
     {
@@ -73,8 +73,8 @@ export default function Tools() {
       icon: '📊',
       category: 'DevOps',
       stars: 620,
-      link: '#',
-      isExternal: false,
+      link: 'https://py-spy.readthedocs.io/',
+      isExternal: true,
       tags: ['性能分析', '优化', '开发工具'],
     },
     {
@@ -103,8 +103,8 @@ export default function Tools() {
       icon: '🗃️',
       category: 'Database',
       stars: 380,
-      link: '#',
-      isExternal: false,
+      link: 'https://dbeaver.io/',
+      isExternal: true,
       tags: ['SQL', '数据库', '开发工具'],
     },
     {
@@ -113,8 +113,8 @@ export default function Tools() {
       icon: '🔌',
       category: 'DevOps',
       stars: 320,
-      link: '#',
-      isExternal: false,
+      link: 'https://www.postman.com/',
+      isExternal: true,
       tags: ['API', '测试', '开发工具'],
     },
     {
@@ -123,8 +123,8 @@ export default function Tools() {
       icon: '📋',
       category: 'DevOps',
       stars: 280,
-      link: '#',
-      isExternal: false,
+      link: 'https://www.elastic.co/',
+      isExternal: true,
       tags: ['日志', '分析', '开发工具'],
     },
     {
@@ -133,8 +133,8 @@ export default function Tools() {
       icon: '🔍',
       category: 'Python',
       stars: 240,
-      link: '#',
-      isExternal: false,
+      link: 'https://pycqa.github.io/isort/',
+      isExternal: true,
       tags: ['Python', '代码检查', '开发工具'],
     },
     {
@@ -143,8 +143,8 @@ export default function Tools() {
       icon: '🚀',
       category: 'DevOps',
       stars: 210,
-      link: '#',
-      isExternal: false,
+      link: 'https://cookiecutter.readthedocs.io/',
+      isExternal: true,
       tags: ['脚手架', '项目模板', '开发工具'],
     },
   ];
