@@ -144,8 +144,7 @@ export default function Home() {
               </span>
             </h1>
             <p className="mx-auto mb-8 max-w-2xl text-lg text-zinc-600 dark:text-zinc-400">
-              专注于 C++ 和 Python 开发，致力于构建高性能、可扩展的软件解决方案。
-              这里是我的个人技术空间，展示我的作品、分享知识和实用工具。
+              深耕 C++ 与 Python，致力于通过代码解决复杂问题，打造高性能、可扩展的软件基石。在此分享我的技术实践、思考与原创工具，与同道一起探索工程之美。
             </p>
             <div className="flex justify-center gap-4">
               <Link
