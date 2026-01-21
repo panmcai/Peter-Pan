@@ -18,13 +18,22 @@ export default function Tools() {
       isNew: false,
     },
     {
+      name: '浮点数可视化工具',
+      description: '可视化 IEEE 754 浮点数格式，直观理解二进制表示',
+      icon: '🔢',
+      category: '自研工具',
+      usage: 75,
+      link: 'https://panmcai.github.io/FloatVisualizer/',
+      isNew: true,
+    },
+    {
       name: 'C++代码格式化',
       description: '自动格式化C++代码，保持代码风格统一',
       icon: '⚡',
       category: 'C++',
       usage: 78,
       link: 'https://clang.llvm.org/docs/ClangFormat.html',
-      isNew: true,
+      isNew: false,
     },
     {
       name: '性能分析器',
@@ -33,15 +42,6 @@ export default function Tools() {
       category: 'DevOps',
       usage: 72,
       link: 'https://py-spy.readthedocs.io/',
-      isNew: false,
-    },
-    {
-      name: 'Docker容器管理',
-      description: '简化Docker容器和镜像的管理操作',
-      icon: '🐳',
-      category: 'DevOps',
-      usage: 68,
-      link: 'https://www.docker.com/',
       isNew: false,
     },
   ];
@@ -147,10 +147,29 @@ export default function Tools() {
       isExternal: true,
       tags: ['脚手架', '项目模板', '开发工具'],
     },
+    {
+      name: '浮点数可视化工具',
+      description: '可视化 IEEE 754 浮点数格式，直观理解二进制表示',
+      icon: '🔢',
+      category: '自研工具',
+      stars: 150,
+      link: 'https://panmcai.github.io/FloatVisualizer/',
+      isExternal: true,
+      tags: ['浮点数', '可视化', '工具', '自研'],
+    },
   ];
 
-  const categories = ['全部', 'Python', 'C++', 'DevOps', 'Database'];
+  const categories = ['全部', '自研工具', 'C++', 'Python', 'DevOps', 'Database'];
   const [selectedCategory, setSelectedCategory] = useState('全部');
+
+  // 定义类目优先级
+  const categoryPriority: Record<string, number> = {
+    '自研工具': 1,
+    'C++': 2,
+    'Python': 3,
+    'DevOps': 4,
+    'Database': 5,
+  };
 
   const filteredTools = allTools.filter((tool) => {
     const matchesSearch = tool.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -158,6 +177,19 @@ export default function Tools() {
                          tool.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesCategory = selectedCategory === '全部' || tool.category === selectedCategory;
     return matchesSearch && matchesCategory;
+  }).sort((a, b) => {
+    // 当选择了特定类目时，按照星数排序
+    if (selectedCategory !== '全部') {
+      return b.stars - a.stars;
+    }
+    // 当选择"全部"时，按照类目优先级排序
+    const priorityA = categoryPriority[a.category] ?? 999;
+    const priorityB = categoryPriority[b.category] ?? 999;
+    if (priorityA !== priorityB) {
+      return priorityA - priorityB;
+    }
+    // 同一类目内按星数排序
+    return b.stars - a.stars;
   });
 
   return (
@@ -190,11 +222,19 @@ export default function Tools() {
               <a
                 key={index}
                 href={tool.link}
-                className="group relative overflow-hidden rounded-xl border-2 border-blue-200 bg-white p-6 transition-all hover:border-blue-400 hover:shadow-xl dark:border-blue-900/50 dark:bg-zinc-900 dark:hover:border-blue-700"
+                className={`group relative overflow-hidden rounded-xl border-2 bg-white p-6 transition-all hover:shadow-xl dark:bg-zinc-900 ${
+                  tool.category === '自研工具'
+                    ? 'border-green-300 hover:border-green-500 dark:border-green-700 dark:hover:border-green-500'
+                    : 'border-blue-200 hover:border-blue-400 dark:border-blue-900/50 dark:hover:border-blue-700'
+                }`}
               >
-                {tool.isNew && (
-                  <span className="absolute right-2 top-2 rounded-full bg-red-500 px-2 py-0.5 text-xs font-medium text-white">
-                    NEW
+                {(tool.isNew || tool.category === '自研工具') && (
+                  <span className={`absolute right-2 top-2 rounded-full px-2 py-0.5 text-xs font-medium text-white ${
+                    tool.category === '自研工具'
+                      ? 'bg-green-500'
+                      : 'bg-red-500'
+                  }`}>
+                    {tool.category === '自研工具' ? '自研' : 'NEW'}
                   </span>
                 )}
                 <div className="mb-4 text-4xl">{tool.icon}</div>
@@ -276,16 +316,27 @@ export default function Tools() {
                   href={tool.link}
                   target={tool.isExternal ? '_blank' : undefined}
                   rel={tool.isExternal ? 'noopener noreferrer' : undefined}
-                  className="group flex flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white transition-all hover:border-blue-300 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-blue-700"
+                  className={`group flex flex-col overflow-hidden rounded-xl border bg-white transition-all hover:shadow-lg dark:bg-zinc-900 ${
+                    tool.category === '自研工具'
+                      ? 'border-2 border-green-300 hover:border-green-500 dark:border-green-700 dark:hover:border-green-500'
+                      : 'border-zinc-200 hover:border-blue-300 dark:border-zinc-800 dark:hover:border-blue-700'
+                  }`}
                 >
                   <div className="flex flex-1 flex-col p-6">
                     <div className="mb-4 flex items-start justify-between">
                       <div className="text-4xl">{tool.icon}</div>
-                      {tool.isExternal ? (
-                        <ExternalLink className="text-zinc-400" size={18} />
-                      ) : (
-                        <Code className="text-zinc-400" size={18} />
-                      )}
+                      <div className="flex gap-2">
+                        {tool.category === '自研工具' && (
+                          <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-300">
+                            自研
+                          </span>
+                        )}
+                        {tool.isExternal ? (
+                          <ExternalLink className="text-zinc-400" size={18} />
+                        ) : (
+                          <Code className="text-zinc-400" size={18} />
+                        )}
+                      </div>
                     </div>
                     <h3 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-zinc-50 group-hover:text-blue-600 dark:group-hover:text-blue-400">
                       {tool.name}
@@ -298,16 +349,28 @@ export default function Tools() {
                         {tool.tags.slice(0, 3).map((tag, ti) => (
                           <span
                             key={ti}
-                            className="rounded-full bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
+                            className={`rounded-full px-2 py-1 text-xs font-medium ${
+                              tool.category === '自研工具'
+                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                                : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400'
+                            }`}
                           >
                             {tag}
                           </span>
                         ))}
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-500">
+                      <div className={`flex items-center gap-2 text-sm ${
+                        tool.category === '自研工具'
+                          ? 'text-green-600 dark:text-green-400'
+                          : 'text-zinc-500 dark:text-zinc-500'
+                      }`}>
                         <Star size={14} className="fill-yellow-400 text-yellow-400" />
                         <span>{tool.stars}</span>
-                        <span className="ml-2 rounded-full bg-zinc-100 px-2 py-0.5 text-xs dark:bg-zinc-800">
+                        <span className={`ml-2 rounded-full px-2 py-0.5 text-xs ${
+                          tool.category === '自研工具'
+                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                            : 'bg-zinc-100 dark:bg-zinc-800'
+                        }`}>
                           {tool.category}
                         </span>
                       </div>
