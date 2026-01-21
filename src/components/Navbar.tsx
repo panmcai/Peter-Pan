@@ -7,9 +7,8 @@ import { useState } from 'react';
 
 const navItems = [
   { name: '首页', path: '/' },
-  { name: '关于我', path: '/about' },
-  { name: '博客', path: '/blog' },
   { name: '工具', path: '/tools' },
+  { name: '博客', path: '/blog' },
   { name: '联系', path: '/contact' },
 ];
 
