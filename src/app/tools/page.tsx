@@ -15,6 +15,7 @@ export default function Tools() {
       usage: 85,
       link: 'https://pypi.org/',
       isNew: false,
+      isSelfDeveloped: false,
     },
     {
       name: '浮点数可视化工具',
@@ -24,6 +25,7 @@ export default function Tools() {
       usage: 75,
       link: 'https://panmcai.github.io/FloatVisualizer/',
       isNew: true,
+      isSelfDeveloped: true,
     },
     {
       name: 'C++代码格式化',
@@ -33,6 +35,7 @@ export default function Tools() {
       usage: 78,
       link: 'https://clang.llvm.org/docs/ClangFormat.html',
       isNew: false,
+      isSelfDeveloped: false,
     },
     {
       name: 'Docker容器管理',
@@ -42,8 +45,16 @@ export default function Tools() {
       usage: 72,
       link: 'https://www.docker.com/',
       isNew: false,
+      isSelfDeveloped: false,
     },
   ];
+
+  // 将自研工具放在最前面
+  const sortedFeaturedTools = [...featuredTools].sort((a, b) => {
+    if (a.isSelfDeveloped && !b.isSelfDeveloped) return -1;
+    if (!a.isSelfDeveloped && b.isSelfDeveloped) return 1;
+    return 0;
+  });
 
   const allTools = [
     {
@@ -217,7 +228,7 @@ export default function Tools() {
             </h2>
           </div>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            {featuredTools.map((tool, index) => (
+            {sortedFeaturedTools.map((tool, index) => (
               <a
                 key={index}
                 href={tool.link}
