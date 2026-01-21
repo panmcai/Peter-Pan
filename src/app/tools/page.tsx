@@ -35,12 +35,12 @@ export default function Tools() {
       isNew: false,
     },
     {
-      name: '性能分析器',
-      description: '分析代码性能瓶颈，优化执行效率',
-      icon: '📊',
+      name: 'Docker容器管理',
+      description: '简化Docker容器和镜像的管理操作',
+      icon: '🐳',
       category: 'DevOps',
       usage: 72,
-      link: 'https://py-spy.readthedocs.io/',
+      link: 'https://www.docker.com/',
       isNew: false,
     },
   ];
