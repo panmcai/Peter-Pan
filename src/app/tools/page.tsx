@@ -1,8 +1,7 @@
 'use client';
 
-import Link from 'next/link';
-import { ExternalLink, Star, TrendingUp, Search, Code, Terminal, Database, Layout } from 'lucide-react';
 import { useState } from 'react';
+import { ExternalLink, Star, TrendingUp, Search, Code } from 'lucide-react';
 
 export default function Tools() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -383,27 +382,6 @@ export default function Tools() {
         </div>
       </section>
 
-      {/* Contribute Section */}
-      <section className="border-t border-zinc-200 px-4 py-16 dark:border-zinc-800">
-        <div className="mx-auto max-w-4xl text-center">
-          <Terminal className="mx-auto mb-4 h-12 w-12 text-blue-600 dark:text-blue-400" />
-          <h2 className="mb-4 text-2xl font-bold text-zinc-900 dark:text-zinc-50">
-            贡献你的工具
-          </h2>
-          <p className="mb-8 text-lg text-zinc-600 dark:text-zinc-400">
-            如果你开发了实用的工具，欢迎分享到社区，帮助更多开发者
-          </p>
-          <a
-            href="https://github.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-8 py-3 text-white transition-colors hover:bg-blue-700"
-          >
-            <Code size={18} />
-            提交你的工具
-          </a>
-        </div>
-      </section>
     </div>
   );
 }
