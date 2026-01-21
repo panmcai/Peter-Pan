@@ -57,13 +57,6 @@ export default function Home() {
 
   const quickLinks = [
     {
-      title: '关于我',
-      description: '了解我的技术背景、工作经历和项目经验',
-      icon: Users,
-      href: '/about',
-      color: 'from-blue-500 to-cyan-500',
-    },
-    {
       title: '技术博客',
       description: '分享编程知识、技术见解和最佳实践',
       icon: BookOpen,
@@ -76,13 +69,6 @@ export default function Home() {
       icon: Wrench,
       href: '/tools',
       color: 'from-green-500 to-emerald-500',
-    },
-    {
-      title: '开源项目',
-      description: '探索我的开源项目和技术贡献',
-      icon: Code,
-      href: '/about#projects',
-      color: 'from-orange-500 to-red-500',
     },
   ];
 
@@ -148,10 +134,10 @@ export default function Home() {
             </p>
             <div className="flex justify-center gap-4">
               <Link
-                href="/about"
+                href="/blog"
                 className="flex items-center gap-2 rounded-full bg-blue-600 px-6 py-3 text-white transition-colors hover:bg-blue-700"
               >
-                了解更多
+                阅读博客
                 <ArrowRight size={16} />
               </Link>
               <Link
