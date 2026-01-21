@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowRight, Code, BookOpen, Wrench, Users, TrendingUp, Palette } from 'lucide-react';
+import { ArrowRight, Code, BookOpen, Wrench, Users, Palette } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -57,26 +57,26 @@ export default function Home() {
 
   const quickLinks = [
     {
-      title: '技术博客',
-      description: '分享编程知识、技术见解和最佳实践',
-      icon: BookOpen,
-      href: '/blog',
-      color: 'from-purple-500 to-pink-500',
-    },
-    {
       title: '实用工具',
       description: '开发工具集合，提升你的工作效率',
       icon: Wrench,
       href: '/tools',
       color: 'from-green-500 to-emerald-500',
     },
+    {
+      title: '技术博客',
+      description: '分享编程知识、技术见解和最佳实践',
+      icon: BookOpen,
+      href: '/blog',
+      color: 'from-purple-500 to-pink-500',
+    },
   ];
 
   const featuredTools = [
-    { name: 'Python包管理', usage: 85, icon: '🐍' },
-    { name: 'C++编译器', usage: 78, icon: '⚡' },
-    { name: '代码格式化', usage: 72, icon: '✨' },
-    { name: '性能分析', usage: 68, icon: '📊' },
+    { name: 'Python包管理工具', usage: 85, icon: '🐍', link: 'https://pypi.org/' },
+    { name: '浮点数可视化工具', usage: 75, icon: '🔢', link: 'https://panmcai.github.io/FloatVisualizer/', isSelfDeveloped: true },
+    { name: 'C++代码格式化', usage: 78, icon: '⚡', link: 'https://clang.llvm.org/docs/ClangFormat.html' },
+    { name: '性能分析器', usage: 72, icon: '📊', link: 'https://py-spy.readthedocs.io/' },
   ];
 
   const handleThemeChange = (themeId: string) => {
@@ -222,17 +222,29 @@ export default function Home() {
           </div>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {featuredTools.map((tool, index) => (
-              <div
+              <a
                 key={index}
-                className="rounded-xl border border-zinc-200 bg-white p-4 transition-colors hover:border-blue-300 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-blue-700"
+                href={tool.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`group relative overflow-hidden rounded-xl border bg-white p-4 transition-all hover:shadow-lg dark:bg-zinc-900 ${
+                  tool.isSelfDeveloped
+                    ? 'border-2 border-green-300 hover:border-green-500 dark:border-green-700 dark:hover:border-green-500'
+                    : 'border-zinc-200 hover:border-blue-300 dark:border-zinc-800 dark:hover:border-blue-700'
+                }`}
               >
+                {tool.isSelfDeveloped && (
+                  <span className="absolute right-2 top-2 rounded-full bg-green-500 px-2 py-0.5 text-xs font-medium text-white">
+                    自研
+                  </span>
+                )}
                 <div className="mb-3 flex items-center justify-between">
                   <span className="text-2xl">{tool.icon}</span>
                   <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
                     {tool.usage}% 使用率
                   </span>
                 </div>
-                <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">
+                <h3 className="font-semibold text-zinc-900 dark:text-zinc-50 group-hover:text-blue-600 dark:group-hover:text-blue-400">
                   {tool.name}
                 </h3>
                 <div className="mt-3 h-2 w-full rounded-full bg-zinc-200 dark:bg-zinc-800">
@@ -241,35 +253,8 @@ export default function Home() {
                     style={{ width: `${tool.usage}%` }}
                   />
                 </div>
-              </div>
+              </a>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="border-t border-zinc-200 bg-white px-4 py-20 dark:border-zinc-800 dark:bg-black">
-        <div className="mx-auto max-w-4xl text-center">
-          <TrendingUp className="mx-auto mb-4 h-12 w-12 text-blue-600 dark:text-blue-400" />
-          <h2 className="mb-4 text-3xl font-bold text-zinc-900 dark:text-zinc-50">
-            开始探索
-          </h2>
-          <p className="mb-8 text-lg text-zinc-600 dark:text-zinc-400">
-            浏览我的博客文章，探索开源项目，或使用实用工具提升你的开发效率。
-          </p>
-          <div className="flex flex-col justify-center gap-4 sm:flex-row">
-            <Link
-              href="/blog"
-              className="rounded-full bg-blue-600 px-8 py-3 text-white transition-colors hover:bg-blue-700"
-            >
-              阅读博客
-            </Link>
-            <Link
-              href="/tools"
-              className="rounded-full border-2 border-zinc-300 px-8 py-3 transition-colors hover:border-zinc-400 dark:border-zinc-700 dark:hover:border-zinc-600"
-            >
-              浏览工具
-            </Link>
           </div>
         </div>
       </section>
