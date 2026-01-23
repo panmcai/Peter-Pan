@@ -73,7 +73,7 @@ export default function Home() {
   ];
 
   const featuredTools = [
-    { name: 'RegexTool', usage: 82, icon: '🎯', link: 'https://regextool.panmcai.dpdns.org/', isSelfDeveloped: true },
+    { name: 'RegexTool', usage: 82, icon: '🎯', link: 'https://regexbox.panmcai.dpdns.org/', isSelfDeveloped: true },
     { name: '浮点数可视化工具', usage: 75, icon: '🔢', link: 'https://panmcai.github.io/FloatVisualizer/', isSelfDeveloped: true },
   ];
 
