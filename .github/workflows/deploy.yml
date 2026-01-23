@@ -96,5 +96,5 @@ jobs:
           commit_message: ${{ github.event.head_commit.message || 'Deploy to GitHub Pages' }}
           
           # 可选：使用自定义域名
-          # cname: example.com
+          cname: peter.panmcai.dpdns.org
           
