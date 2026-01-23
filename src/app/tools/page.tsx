@@ -23,7 +23,7 @@ export default function Tools() {
       icon: '🎯',
       category: '自研工具',
       usage: 82,
-      link: 'https://regextool.panmcai.dpdns.org/',
+      link: 'https://regexbox.panmcai.dpdns.org/',
       isNew: true,
       isSelfDeveloped: true,
     },
