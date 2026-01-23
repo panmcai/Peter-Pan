@@ -7,7 +7,7 @@
 - All In AI, 习惯使用AI Agent协助开发，提升效率
 
 # 技术分享：
-[CSDN @ Peter·Pan爱编程](https://blog.csdn.net/weixin_42125125?spm=1000.2115.3001.5343) | [个人网站](https://panmcai.github.io/panmcai/)
+[CSDN @ Peter·Pan爱编程](https://blog.csdn.net/weixin_42125125?spm=1000.2115.3001.5343) | [个人网站](http://peter.panmcai.dpdns.org/)
 
 # 免费工具推荐
 [FloatVisualizer](https://panmcai.github.io/FloatVisualizer/)
