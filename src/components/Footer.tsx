@@ -12,7 +12,7 @@ export default function Footer() {
           </p>
           <div className="flex space-x-4">
             <a
-              href="https://github.com"
+              href="https://github.com/panmcai"
               target="_blank"
               rel="noopener noreferrer"
               className="text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"

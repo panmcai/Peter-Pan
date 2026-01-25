@@ -122,7 +122,7 @@ export default function Contact() {
     {
       name: 'GitHub',
       icon: Github,
-      href: 'https://github.com',
+      href: 'https://github.com/panmcai',
       description: '查看我的开源项目和代码贡献',
       color: 'hover:bg-zinc-900 dark:hover:bg-zinc-800',
     },
