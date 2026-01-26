@@ -3,6 +3,7 @@
 import { ArrowRight, Code, BookOpen, Wrench, Users, Palette } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { visitorManager } from '@/storage/database/visitorManager';
 
 // 背景主题配置
 const backgroundThemes = [
@@ -42,11 +43,23 @@ export default function Home() {
   useEffect(() => {
     setIsMounted(true);
 
-    // 从localStorage获取或初始化访问计数
+    // 从 localStorage 获取或初始化访问计数（作为降级方案）
     const stored = localStorage.getItem('visitorCount');
-    const count = stored ? parseInt(stored) : Math.floor(Math.random() * 1000) + 500;
-    localStorage.setItem('visitorCount', String(count + 1));
-    setVisitorCount(count + 1);
+    const fallbackCount = stored ? parseInt(stored) : Math.floor(Math.random() * 1000) + 500;
+
+    // 优先调用 Supabase Edge Functions，失败时降级到 localStorage
+    visitorManager.getVisitorCountWithFallback().then((count) => {
+      setVisitorCount(count);
+      localStorage.setItem('visitorCount', String(count));
+    }).catch(() => {
+      // 如果出错，使用降级值
+      const newCount = fallbackCount + 1;
+      setVisitorCount(newCount);
+      localStorage.setItem('visitorCount', String(newCount));
+    });
+
+    // 尝试记录此次访问
+    visitorManager.recordVisit('/').catch(console.error);
 
     // 从localStorage获取保存的主题
     const savedTheme = localStorage.getItem('backgroundTheme');
@@ -75,7 +88,16 @@ export default function Home() {
   const featuredTools = [
     { name: 'RegexTool', usage: 82, icon: '🎯', link: 'https://regexbox.panmcai.dpdns.org/', isSelfDeveloped: true },
     { name: '浮点数可视化工具', usage: 75, icon: '🔢', link: 'https://panmcai.github.io/FloatVisualizer/', isSelfDeveloped: true },
+    { name: 'FormatFactory', usage: 68, icon: '🏭', link: 'https://panmcai.github.io/FormatFactory/', isSelfDeveloped: true },
+    { name: 'Python包管理工具', usage: 85, icon: '🐍', link: 'https://pypi.org/', isSelfDeveloped: false },
   ];
+
+  // 将自研工具放在最前面
+  const sortedFeaturedTools = [...featuredTools].sort((a, b) => {
+    if (a.isSelfDeveloped && !b.isSelfDeveloped) return -1;
+    if (!a.isSelfDeveloped && b.isSelfDeveloped) return 1;
+    return 0;
+  });
 
   const handleThemeChange = (themeId: string) => {
     setCurrentTheme(themeId);
@@ -155,7 +177,7 @@ export default function Home() {
           <div className="grid grid-cols-2 gap-6 md:grid-cols-3">
             {[
               { label: '总访问量', value: isMounted ? visitorCount.toLocaleString() : '...', icon: Users },
-              { label: '实用工具', value: '10', icon: Wrench },
+              { label: '实用工具', value: '11', icon: Wrench },
               { label: '技术文章', value: '6', icon: BookOpen },
             ].map((stat, index) => (
               <div key={index} className="text-center">
@@ -218,7 +240,7 @@ export default function Home() {
             </Link>
           </div>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {featuredTools.map((tool, index) => (
+            {sortedFeaturedTools.map((tool, index) => (
               <a
                 key={index}
                 href={tool.link}
