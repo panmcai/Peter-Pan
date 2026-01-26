@@ -76,7 +76,6 @@ export default function Home() {
     { name: 'RegexTool', usage: 82, icon: '🎯', link: 'https://regexbox.panmcai.dpdns.org/', isSelfDeveloped: true },
     { name: '浮点数可视化工具', usage: 75, icon: '🔢', link: 'https://panmcai.github.io/FloatVisualizer/', isSelfDeveloped: true },
     { name: 'FormatFactory', usage: 68, icon: '🏭', link: 'https://panmcai.github.io/FormatFactory/', isSelfDeveloped: true },
-    { name: 'Python包管理工具', usage: 85, icon: '🐍', link: 'https://pypi.org/', isSelfDeveloped: false },
   ];
 
   // 将自研工具放在最前面
