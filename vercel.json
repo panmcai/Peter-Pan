@@ -1,0 +1,16 @@
+{
+  "buildCommand": "pnpm run build",
+  "outputDirectory": "out",
+  "installCommand": "pnpm install",
+  "framework": null,
+  "env": {
+    "NEXT_PUBLIC_SUPABASE_URL": {
+      "description": "Supabase 项目 URL",
+      "value": null
+    },
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": {
+      "description": "Supabase 匿名密钥",
+      "value": null
+    }
+  }
+}
