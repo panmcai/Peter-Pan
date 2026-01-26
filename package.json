@@ -2,12 +2,13 @@
   "name": "projects",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "pnpm@10.28.1",
   "scripts": {
     "dev": "next dev -p 5000",
-    "build": "next build",
+    "build": "pnpm install && npx next build",
+    "preinstall": "npx only-allow pnpm",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "ts-check": "tsc -p tsconfig.json"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.958.0",
@@ -36,5 +37,14 @@
     "eslint-config-next": "16.0.10",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "packageManager": "pnpm@10.28.1",
+  "engines": {
+    "pnpm": ">=10.0.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "esbuild": "^0.25.12"
+    }
   }
 }
