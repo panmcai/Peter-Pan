@@ -1,5 +1,13 @@
 {
-  "buildCommand": "pnpm run build",
+  "buildCommand": "pnpm install && npx next build",
+  "devCommand": "npx next dev",
   "installCommand": "pnpm install",
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "outputDirectory": ".next",
+  "regions": [
+    "hkg1"
+  ],
+  "env": {
+    "NEXT_TELEMETRY_DISABLED": "1"
+  }
 }
