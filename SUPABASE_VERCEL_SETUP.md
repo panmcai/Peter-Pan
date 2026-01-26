@@ -3,6 +3,8 @@
 ## 📋 前置要求
 - Supabase 账号（免费即可）
 - Vercel 账号（免费即可）
+- Node.js >= 20
+- pnpm >= 9.0.0
 
 ---
 
@@ -102,7 +104,7 @@ pnpm run dev
 
 ---
 
-## ☁️ 第三步：部署到 Vercel
+## ☁️ 第三步：部署到 Vercel（动态模式）
 
 ### 方法一：通过 GitHub 自动部署（推荐）
 
@@ -120,20 +122,26 @@ git push origin main
    - 点击 "Import"
 
 3. **配置项目**
-   - Framework Preset：选择 `Next.js`
+   - Framework Preset：自动识别为 `Next.js`
    - Root Directory：保持 `./`
    - Build Command：`pnpm run build`
-   - Output Directory：`out`
+   - **注意**：本项目使用动态模式，无需配置 Output Directory
+   - **区域设置**：项目已配置为香港（hkg1）区域部署
 
-4. **配置环境变量**
-   在 "Environment Variables" 部分添加：
+4. **配置环境变量（重要）**
+   在 "Environment Variables" 部分添加以下环境变量：
    ```
    Name: NEXT_PUBLIC_SUPABASE_URL
-   Value: https://your-project-id.supabase.co
-   
+   Value: https://dhmoxklldcaztujuefsw.supabase.co
+
    Name: NEXT_PUBLIC_SUPABASE_ANON_KEY
-   Value: your-anon-key-here
+   Value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRobW94a2xsZGNhenR1anVlZnN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg4OTQ1NzcsImV4cCI6MjA4NDQ3MDU3N30.Cflm39jGTf3pgIPQ6hUY0mehYvKiUv-nO1_PVNYt9HI
    ```
+
+   **注意**：
+   - 环境变量必须在 Vercel 控制台中配置，不要在 `vercel.json` 中配置
+   - 必须使用 `NEXT_PUBLIC_` 前缀，否则客户端代码无法访问
+   - 配置后需要重新部署才能生效
 
 5. **部署**
    - 点击 "Deploy"
@@ -155,9 +163,56 @@ vercel
 vercel env add NEXT_PUBLIC_SUPABASE_URL
 vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-# 重新部署
+# 生产部署
 vercel --prod
 ```
+
+---
+
+## 🌍 区域部署配置
+
+本项目已配置为在香港（hkg1）区域部署，以提供更好的访问速度。
+
+### 当前配置
+- **部署区域**：香港（hkg1）
+- **配置文件**：`vercel.json`
+
+### 更改部署区域
+
+如需更改部署区域，编辑 `vercel.json` 文件：
+
+```json
+{
+  "framework": "nextjs",
+  "regions": ["hkg1"]  // 修改为其他区域代码
+}
+```
+
+### 可用区域代码
+
+| 区域 | 代码 |
+|------|------|
+| 香港 | hkg1 |
+| 新加坡 | sgp1 |
+| 东京 | hnd1 |
+| 首尔 | icn1 |
+| 法兰克福 | fra1 |
+| 伦敦 | lhr1 |
+| 华盛顿特区 | iad1 |
+| 旧金山 | sfo1 |
+
+### 多区域部署
+
+如需部署到多个区域，使用数组形式：
+
+```json
+{
+  "framework": "nextjs",
+  "regions": ["hkg1", "sgp1", "hnd1"]
+}
+```
+
+**注意**：多区域部署仅在 Pro 计划及以上可用。
 
 ---
 
@@ -180,24 +235,150 @@ vercel --prod
 
 ## 🔍 故障排除
 
-### 问题 1：访客统计不更新
+### 问题 1：pnpm install 失败（ERR_INVALID_THIS）
+
+**错误信息**：
+```
+WARN GET https://registry.npmjs.org/@aws-sdk%2Fclient-s3 error (ERR_INVALID_THIS)
+ERR_PNPM_META_FETCH_FAIL GET https://registry.npmjs.org/@tailwindcss%2Fpostcss: Value of "this" must be of type URLSearchParams
+```
+
+**原因**：
+- 这是 **pnpm 6.x 版本的已知问题**
+- Vercel 默认使用 pnpm 6.35.1，存在此 bug
+- 在处理某些 npm 包的元数据时会出现
+
+**解决**：
+1. 本项目已配置使用 pnpm 9.15.4，修复此问题
+2. 确保 package.json 中有 `packageManager: "pnpm@9.15.4"`
+3. 确保 .npmrc 配置正确
+4. 如果问题仍然存在，检查 Vercel 项目设置：
+   - 进入 "Settings" → "General"
+   - 确认 "Node.js Version" 为 20.x 或更高
+   - 确认 pnpm 已正确安装
+
+### 问题 2：pnpm 版本不兼容（ERR_PNPM_UNSUPPORTED_ENGINE）
+
+**错误信息**：
+```
+ERR_PNPM_UNSUPPORTED_ENGINE Unsupported environment (bad pnpm and/or Node.js version)
+Expected version: >=10.0.0
+Got: 6.35.1
+```
+
+**原因**：
+- 之前使用 `packageManager: "pnpm@10.28.1"`，版本要求过高
+- Vercel 环境默认使用 pnpm 6.35.1，不匹配
+- 已在 v7 版本修复，调整为 pnpm 9.15.4
+
+**解决**：
+1. 本项目已配置使用 pnpm 9.15.4
+2. Vercel 会自动识别并安装指定版本
+3. 检查 package.json 中的 engines 配置：
+   ```json
+   "engines": {
+     "node": ">=20.0.0",
+     "pnpm": ">=9.0.0"
+   }
+   ```
+4. 重新部署
+
+### 问题 2：pnpm 版本不兼容（ERR_PNPM_UNSUPPORTED_ENGINE）
+
+**错误信息**：
+```
+ERR_PNPM_UNSUPPORTED_ENGINE Unsupported environment (bad pnpm and/or Node.js version)
+Expected version: >=9.0.0
+Got: 6.35.1
+This is happening because the package's manifest has an engines.pnpm field specified.
+```
+
+**原因**：
+- Vercel 默认使用 pnpm 6.35.1
+- package.json 中的 `engines.pnpm` 字段强制要求 >=9.0.0
+- 版本不匹配导致构建失败
+
+**解决**：
+1. **项目已使用 corepack 配置**（v9 版本）
+2. 移除了 `packageManager` 字段（避免冲突）
+3. 移除了 `engines.pnpm` 字段（避免版本检查）
+4. 在 vercel.json 中使用 corepack 强制使用 pnpm 9.15.4
+
+**vercel.json 配置**：
+```json
+{
+  "buildCommand": "corepack enable && corepack prepare pnpm@9.15.4 --activate && pnpm install && pnpm run build"
+}
+```
+
+**工作原理**：
+- corepack 是 Node.js 内置工具
+- 自动下载并激活 pnpm 9.15.4
+- 不会与 Vercel 默认配置冲突
+
+### 问题 3：Vercel 构建超时
 **原因**：Edge Function 未部署或环境变量未配置  
 **解决**：
 1. 检查 Supabase Edge Function 是否已部署
 2. 检查 .env.local 中的 API 凭证是否正确
 3. 打开浏览器控制台查看错误信息
 
-### 问题 2：CORS 错误
+### 问题 4：CORS 错误
 **原因**：Edge Function CORS 配置问题  
 **解决**：
 1. 确认 Edge Function 代码中包含正确的 CORS 头
 2. 检查 Supabase 项目设置中的域名白名单
 
-### 问题 3：Vercel 部署失败
-**原因**：环境变量缺失或配置错误  
+### 问题 3：访客统计不更新
+**原因**：Edge Function 未部署或环境变量未配置  
 **解决**：
-1. 在 Vercel 控制台检查环境变量是否已添加
-2. 确认 `NEXT_PUBLIC_` 前缀存在
+1. 检查 Supabase Edge Function 是否已部署
+2. 检查 .env.local 中的 API 凭证是否正确
+3. 打开浏览器控制台查看错误信息
+
+### 问题 4：CORS 错误
+**原因**：Edge Function CORS 配置问题  
+**解决**：
+1. 确认 Edge Function 代码中包含正确的 CORS 头
+2. 检查 Supabase 项目设置中的域名白名单
+
+### 问题 5：Vercel 构建超时
+**原因**：依赖下载或构建时间过长  
+**解决**：
+1. 检查网络连接
+2. 在 Vercel 项目设置中增加构建超时时间
+3. 优化依赖列表，移除不必要的包
+
+---
+
+## 📝 说明
+
+本项目使用 **动态部署模式**，而非静态导出：
+- ✅ 支持 API 路由和服务器组件
+- ✅ 支持 Supabase Edge Functions 集成
+- ✅ 访客统计功能正常工作
+- ✅ 右侧预览与 Vercel 部署效果一致
+
+**v4 版本优化**：
+- 修复了 pnpm 在 Vercel 构建环境中的兼容性问题
+- 添加了 `.npmrc` 配置优化依赖下载
+- 添加了 `.nvmrc` 指定 Node.js 版本
+- 简化了 `vercel.json` 配置
+
+**v7-v8 版本优化**：
+- 升级 pnpm 到 9.15.4，修复 ERR_INVALID_THIS 错误
+- 添加 `packageManager` 字段，确保 Vercel 使用正确版本
+- 更新 `engines` 配置，明确最低版本要求
+
+### 关于 pnpm 版本
+
+- **v6 版本问题**：Vercel 默认的 pnpm 6.35.1 存在 ERR_INVALID_THIS 错误
+- **v9 版本优势**：修复了已知错误，更快的安装速度，更好的依赖解析
+- **版本配置**：项目已配置使用 pnpm 9.15.4，Vercel 会自动安装
+
+详细配置说明请参考 `VERCEL_PNPM_CONFIG.md` 文档。
+
+如果你需要切换到静态导出模式（例如部署到 GitHub Pages），请参考项目中的 `README.md` 或联系开发者。
 3. 重新触发部署
 
 ---
