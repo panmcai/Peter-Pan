@@ -43,23 +43,27 @@ export default function Home() {
   useEffect(() => {
     setIsMounted(true);
 
-    // 从 localStorage 获取或初始化访问计数（作为降级方案）
-    const stored = localStorage.getItem('visitorCount');
-    const fallbackCount = stored ? parseInt(stored) : Math.floor(Math.random() * 1000) + 500;
+    // 异步函数：记录访问并更新访问量
+    const updateVisitCount = async () => {
+      try {
+        // 1. 记录此次访问（自动降级到 localStorage 如果 Supabase 不可用）
+        await visitorManager.recordVisit('/');
 
-    // 优先调用 Supabase Edge Functions，失败时降级到 localStorage
-    visitorManager.getVisitorCountWithFallback().then((count) => {
-      setVisitorCount(count);
-      localStorage.setItem('visitorCount', String(count));
-    }).catch(() => {
-      // 如果出错，使用降级值
-      const newCount = fallbackCount + 1;
-      setVisitorCount(newCount);
-      localStorage.setItem('visitorCount', String(newCount));
-    });
+        // 2. 获取最新的访问量（自动降级到 localStorage）
+        const latestCount = await visitorManager.getVisitorCountWithFallback();
 
-    // 尝试记录此次访问
-    visitorManager.recordVisit('/').catch(console.error);
+        // 3. 更新显示
+        setVisitorCount(latestCount);
+      } catch (error) {
+        // 即使出错，也使用降级方案
+        console.error('Failed to update visit count:', error);
+        const fallbackCount = Math.floor(Math.random() * 1000) + 500;
+        setVisitorCount(fallbackCount);
+      }
+    };
+
+    // 执行访问统计更新
+    updateVisitCount();
 
     // 从localStorage获取保存的主题
     const savedTheme = localStorage.getItem('backgroundTheme');
