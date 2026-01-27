@@ -55,10 +55,11 @@ export default function Home() {
         // 3. 更新显示
         setVisitorCount(latestCount);
       } catch (error) {
-        // 即使出错，也使用降级方案
-        console.error('Failed to update visit count:', error);
-        const fallbackCount = Math.floor(Math.random() * 1000) + 500;
-        setVisitorCount(fallbackCount);
+        // 即使出错，也使用本地存储的值
+        console.error('[Home] Failed to update visit count:', error);
+        // 不再使用随机数，直接使用本地存储或 0
+        const storedCount = localStorage.getItem('visitorCount');
+        setVisitorCount(storedCount ? parseInt(storedCount) : 0);
       }
     };
 
