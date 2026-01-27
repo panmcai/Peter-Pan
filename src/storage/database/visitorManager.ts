@@ -28,6 +28,41 @@ export class VisitorManager {
   }
 
   /**
+   * 检查是否在浏览器环境中
+   */
+  private isBrowser(): boolean {
+    return typeof window !== 'undefined' && typeof localStorage !== 'undefined';
+  }
+
+  /**
+   * 获取本地存储的访问量
+   */
+  private getLocalCount(): number {
+    if (!this.isBrowser()) return 0;
+    
+    try {
+      const stored = localStorage.getItem('visitorCount');
+      return stored ? parseInt(stored) : Math.floor(Math.random() * 1000) + 500;
+    } catch (error) {
+      // localStorage 不可用时，返回随机值（静默处理）
+      return Math.floor(Math.random() * 1000) + 500;
+    }
+  }
+
+  /**
+   * 设置本地存储的访问量
+   */
+  private setLocalCount(count: number): void {
+    if (!this.isBrowser()) return;
+    
+    try {
+      localStorage.setItem('visitorCount', String(count));
+    } catch (error) {
+      // localStorage 写入失败时静默处理（不影响核心功能）
+    }
+  }
+
+  /**
    * 检查是否已配置 Supabase
    */
   private isConfigured(): boolean {
@@ -35,13 +70,17 @@ export class VisitorManager {
   }
 
   /**
-   * 记录一次访问
+   * 记录一次访问（包含降级处理）
    * @param path - 访问路径，默认为 '/'
+   * @returns 是否成功记录
    */
-  async recordVisit(path: string = '/'): Promise<void> {
+  async recordVisit(path: string = '/'): Promise<boolean> {
+    // 如果 Supabase 未配置，直接使用 localStorage 降级
     if (!this.isConfigured()) {
-      console.warn('Supabase not configured, skipping visit recording');
-      return;
+      console.warn('[VisitorManager] Supabase not configured, using localStorage fallback');
+      const currentCount = this.getLocalCount();
+      this.setLocalCount(currentCount + 1);
+      return false; // 表示使用了降级方案
     }
 
     try {
@@ -55,10 +94,18 @@ export class VisitorManager {
       });
 
       if (!response.ok) {
-        console.error('Failed to record visit:', await response.text());
+        // Supabase 请求失败，降级到 localStorage（静默处理，避免触发错误边界）
+        const currentCount = this.getLocalCount();
+        this.setLocalCount(currentCount + 1);
+        return false;
       }
+
+      return true; // 表示成功使用 Supabase
     } catch (error) {
-      console.error('Error recording visit:', error);
+      // 网络错误，降级到 localStorage（静默处理，避免触发错误边界）
+      const currentCount = this.getLocalCount();
+      this.setLocalCount(currentCount + 1);
+      return false;
     }
   }
 
@@ -67,9 +114,9 @@ export class VisitorManager {
    * @returns 访客总数
    */
   async getVisitorCount(): Promise<number> {
+    // 如果 Supabase 未配置，直接返回本地计数
     if (!this.isConfigured()) {
-      console.warn('Supabase not configured, returning 0');
-      return 0;
+      return this.getLocalCount();
     }
 
     try {
@@ -81,15 +128,15 @@ export class VisitorManager {
       });
 
       if (!response.ok) {
-        console.error('Failed to fetch visitor count:', await response.text());
-        return 0;
+        // 请求失败，降级到本地计数（静默处理）
+        return this.getLocalCount();
       }
 
       const data: VisitorStats = await response.json();
       return data.count || 0;
     } catch (error) {
-      console.error('Error fetching visitor count:', error);
-      return 0;
+      // 网络错误，降级到本地计数（静默处理）
+      return this.getLocalCount();
     }
   }
 
@@ -102,10 +149,9 @@ export class VisitorManager {
     // 尝试从 Supabase 获取
     let count = await this.getVisitorCount();
     
-    // 如果 Supabase 失败或未配置，降级到 localStorage
+    // 如果 Supabase 失败或返回 0，使用本地计数
     if (count === 0) {
-      const stored = localStorage.getItem('visitorCount');
-      count = stored ? parseInt(stored) : Math.floor(Math.random() * 1000) + 500;
+      count = this.getLocalCount();
     }
     
     return count;
