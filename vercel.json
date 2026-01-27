@@ -1,7 +1,7 @@
 {
-  "buildCommand": "pnpm install && npx next build",
+  "installCommand": "corepack enable && corepack prepare pnpm@9.15.4 --activate && pnpm install",
+  "buildCommand": "corepack enable && corepack prepare pnpm@9.15.4 --activate && pnpm install && npx next build",
   "devCommand": "npx next dev",
-  "installCommand": "pnpm install",
   "framework": "nextjs",
   "outputDirectory": ".next",
   "regions": ["hkg1"],
