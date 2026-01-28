@@ -137,7 +137,7 @@ SELECT get_visit_stats() as visit_stats;
 -- 13. 验证数据库表是否正确更新
 SELECT
   'visits count' as table_name,
-  COUNT(*) as record_count
+  COUNT(*)::TEXT as record_count
 FROM visits
 UNION ALL
 SELECT
