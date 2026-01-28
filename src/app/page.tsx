@@ -35,14 +35,12 @@ const backgroundThemes = [
 ];
 
 export default function Home() {
-  const [visitorCount, setVisitorCount] = useState(0);
+  const [visitorCount, setVisitorCount] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [currentTheme, setCurrentTheme] = useState('default');
   const [showThemeSelector, setShowThemeSelector] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    setIsMounted(true);
-
     console.log('📍 [Home] useEffect triggered');
 
     // 异步函数：记录访问并更新访问量
@@ -61,6 +59,7 @@ export default function Home() {
         const latestCount = await visitorManager.getVisitorCountWithFallback();
         console.log('📍 [Home] Got latest count:', latestCount);
         setVisitorCount(latestCount);
+        setIsLoading(false);
         return;
       }
 
@@ -84,13 +83,21 @@ export default function Home() {
         // 3. 更新显示
         setVisitorCount(latestCount);
         console.log('📍 [Home] Updated display');
+        setIsLoading(false);
       } catch (error) {
         console.error('📍 [Home] Failed to update visit count:', error);
         // 即使出错，也使用本地存储的值
         const storedCount = localStorage.getItem('visitorCount');
         setVisitorCount(storedCount ? parseInt(storedCount) : 0);
+        setIsLoading(false);
       }
     };
+
+    // 先从 localStorage 读取缓存的访问量，避免显示0
+    const cachedCount = localStorage.getItem('visitorCount');
+    if (cachedCount) {
+      setVisitorCount(parseInt(cachedCount));
+    }
 
     // 执行访问统计更新
     updateVisitCount();
@@ -202,7 +209,12 @@ export default function Home() {
         <div className="mx-auto max-w-6xl">
           <div className="grid grid-cols-2 gap-6 md:grid-cols-3">
             {[
-              { label: '总访问量', value: isMounted ? visitorCount.toLocaleString() : '...', icon: Users },
+              {
+                label: '总访问量',
+                value: isLoading ? null : visitorCount,
+                icon: Users,
+                isLoading: isLoading,
+              },
               { label: '实用工具', value: '11', icon: Wrench },
               { label: '技术文章', value: '6', icon: BookOpen },
             ].map((stat, index) => (
@@ -210,7 +222,21 @@ export default function Home() {
                 <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
                   <stat.icon className="text-blue-600 dark:text-blue-400" size={24} />
                 </div>
-                <p className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">{stat.value}</p>
+                {stat.isLoading ? (
+                  <p className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">
+                    <span className="inline-flex items-center gap-2">
+                      <span className="h-8 w-20 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+                    </span>
+                  </p>
+                ) : stat.value !== null ? (
+                  <p className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">
+                    {typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}
+                  </p>
+                ) : (
+                  <p className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">
+                    ...
+                  </p>
+                )}
                 <p className="text-sm text-zinc-600 dark:text-zinc-400">{stat.label}</p>
               </div>
             ))}
