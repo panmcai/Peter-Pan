@@ -26,7 +26,7 @@ const MODEL_PROVIDERS = [
     name: '智谱 AI',
     icon: '🤖',
     baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
-    models: ['glm-z1-flash', 'glm-4', 'glm-4-plus', 'glm-4-air', 'glm-4-flash', 'glm-4v'],
+    models: ['glm-4-flash', 'glm-z1-flash', 'glm-4', 'glm-4-plus', 'glm-4-air', 'glm-4v'],
     apiKeyPlaceholder: 'your_zhipuai_api_key',
     docUrl: 'https://open.bigmodel.cn/',
   },
@@ -97,7 +97,9 @@ const MODEL_PROVIDERS = [
 
 export default function ModelConfig({ isOpen, onClose, onConfigChange, currentConfig }: ModelConfigProps) {
   const [selectedProvider, setSelectedProvider] = useState<string>(currentConfig?.provider || 'zhipu');
-  const [selectedModel, setSelectedModel] = useState<string>(currentConfig?.models[0] || 'glm-4');
+  const zhipuProvider = MODEL_PROVIDERS.find(p => p.id === 'zhipu');
+  const defaultModel = zhipuProvider?.models[0] || 'glm-z1-flash';
+  const [selectedModel, setSelectedModel] = useState<string>(currentConfig?.models[0] || defaultModel);
   const [apiKey, setApiKey] = useState(currentConfig?.apiKey || '');
   const [customBaseUrl, setCustomBaseUrl] = useState(currentConfig?.baseUrl || '');
   const [isExpanded, setIsExpanded] = useState(false);
