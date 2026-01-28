@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader2, Sparkles, Clock, Trash2 } from 'lucide-react';
+import { Send, Bot, User, Loader2, Sparkles, Clock, Trash2, Settings, AlertCircle } from 'lucide-react';
+import ModelConfig, { AIModelConfig } from '@/components/ModelConfig';
 
 interface Message {
   role: 'user' | 'assistant' | 'system';
@@ -13,14 +14,31 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: '你好！我是 Peter·Pan 的 AI 助手。我可以帮助你回答问题、提供信息或者只是聊聊天。请问有什么我可以帮助你的吗？',
+      content: '你好！我是 Peter·Pan 的 AI 助手。我可以帮助你回答问题、提供信息或者只是聊聊天。\n\n⚠️ 请先点击右上角的「设置」按钮，选择一个大模型提供商并输入 API Key 后再开始对话。',
       timestamp: new Date(),
     },
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showConfig, setShowConfig] = useState(false);
+  const [modelConfig, setModelConfig] = useState<AIModelConfig | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // 从 localStorage 加载配置
+  useEffect(() => {
+    const saved = localStorage.getItem('current-model-config');
+    if (saved) {
+      setModelConfig(JSON.parse(saved));
+    }
+  }, []);
+
+  // 保存配置到 localStorage
+  useEffect(() => {
+    if (modelConfig) {
+      localStorage.setItem('current-model-config', JSON.stringify(modelConfig));
+    }
+  }, [modelConfig]);
 
   // 自动滚动到底部
   const scrollToBottom = () => {
@@ -33,6 +51,13 @@ export default function ChatPage() {
 
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
+
+    // 检查是否配置了模型
+    if (!modelConfig) {
+      setError('请先配置大模型 API Key');
+      setShowConfig(true);
+      return;
+    }
 
     const userMessage: Message = {
       role: 'user',
@@ -54,7 +79,10 @@ export default function ChatPage() {
         },
         body: JSON.stringify({
           message: userMessage.content,
-          model: 'glm-4',
+          model: modelConfig.models[0],
+          provider: modelConfig.provider,
+          apiKey: modelConfig.apiKey,
+          baseUrl: modelConfig.baseUrl,
         }),
       });
 
@@ -66,21 +94,35 @@ export default function ChatPage() {
       const data = await response.json();
 
       // 添加 AI 回复
+      let assistantContent = '';
+      if (data.choices && data.choices[0] && data.choices[0].message) {
+        assistantContent = data.choices[0].message.content;
+      } else if (data.content && data.content[0]) {
+        // Anthropic 格式
+        assistantContent = data.content[0].text;
+      }
+
+      if (!assistantContent) {
+        throw new Error('未收到有效回复');
+      }
+
       const assistantMessage: Message = {
         role: 'assistant',
-        content: data.choices[0]?.message?.content || '未收到回复',
+        content: assistantContent,
         timestamp: new Date(),
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : '发送失败');
+      const errorMessage = err instanceof Error ? err.message : '发送失败';
+      setError(errorMessage);
+
       // 添加错误消息
       setMessages((prev) => [
         ...prev,
         {
           role: 'assistant',
-          content: `抱歉，发生了错误：${err instanceof Error ? err.message : '未知错误'}`,
+          content: `❌ 抱歉，发生了错误：\n\n${errorMessage}\n\n请检查您的 API Key 是否正确，或者尝试重新配置模型。`,
           timestamp: new Date(),
         },
       ]);
@@ -100,11 +142,25 @@ export default function ChatPage() {
     setMessages([
       {
         role: 'assistant',
-        content: '你好！我是 Peter·Pan 的 AI 助手。我可以帮助你回答问题、提供信息或者只是聊聊天。请问有什么我可以帮助你的吗？',
+        content: modelConfig
+          ? '你好！我是 Peter·Pan 的 AI 助手。我可以帮助你回答问题、提供信息或者只是聊聊天。请问有什么我可以帮助你的吗？'
+          : '你好！我是 Peter·Pan 的 AI 助手。我可以帮助你回答问题、提供信息或者只是聊聊天。\n\n⚠️ 请先点击右上角的「设置」按钮，选择一个大模型提供商并输入 API Key 后再开始对话。',
         timestamp: new Date(),
       },
     ]);
     setError(null);
+  };
+
+  const handleConfigChange = (config: AIModelConfig) => {
+    setModelConfig(config);
+    // 清空消息，显示配置成功提示
+    setMessages([
+      {
+        role: 'assistant',
+        content: `✅ 已成功配置 ${config.name} (${config.models[0]})\n\n现在可以开始对话了！`,
+        timestamp: new Date(),
+      },
+    ]);
   };
 
   const formatTime = (date: Date) => {
@@ -116,6 +172,20 @@ export default function ChatPage() {
     if (minutes < 60) return `${minutes} 分钟前`;
     if (minutes < 1440) return `${Math.floor(minutes / 60)} 小时前`;
     return date.toLocaleDateString('zh-CN');
+  };
+
+  const getProviderIcon = (provider: string) => {
+    const icons: Record<string, string> = {
+      zhipu: '🤖',
+      openai: '🌐',
+      anthropic: '🧠',
+      deepseek: '🔍',
+      qwen: '🌟',
+      moonshot: '🌙',
+      baichuan: '🌊',
+      yi: '💎',
+    };
+    return icons[provider] || '🤖';
   };
 
   return (
@@ -132,17 +202,44 @@ export default function ChatPage() {
                 <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
                   Peter·Pan AI 助手
                 </h1>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">基于智谱 GLM-4 模型</p>
+                <div className="flex items-center gap-2">
+                  {modelConfig ? (
+                    <>
+                      <span className="text-xs px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full flex items-center gap-1">
+                        {getProviderIcon(modelConfig.provider)}
+                        {modelConfig.name}
+                      </span>
+                      <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                        {modelConfig.models[0]}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      未配置模型
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
-            <button
-              onClick={clearChat}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-all"
-              title="清空对话"
-            >
-              <Trash2 size={16} />
-              <span className="hidden sm:inline">清空对话</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowConfig(true)}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/20 rounded-lg transition-all"
+                title="配置模型"
+              >
+                <Settings size={16} />
+                <span className="hidden sm:inline">设置</span>
+              </button>
+              <button
+                onClick={clearChat}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-all"
+                title="清空对话"
+              >
+                <Trash2 size={16} />
+                <span className="hidden sm:inline">清空</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -220,10 +317,10 @@ export default function ChatPage() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="输入消息... (Enter 发送，Shift + Enter 换行)"
+              placeholder={modelConfig ? "输入消息... (Enter 发送，Shift + Enter 换行)" : "请先配置大模型 API Key..."}
               rows={1}
-              className="w-full px-6 py-4 pr-16 border border-zinc-200 dark:border-zinc-700 rounded-2xl bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none shadow-sm transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-500 text-sm sm:text-base"
-              disabled={loading}
+              className="w-full px-6 py-4 pr-16 border border-zinc-200 dark:border-zinc-700 rounded-2xl bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none shadow-sm transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-500 text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={loading || !modelConfig}
               style={{
                 minHeight: '60px',
                 maxHeight: '200px',
@@ -237,7 +334,7 @@ export default function ChatPage() {
             />
             <button
               onClick={sendMessage}
-              disabled={loading || !input.trim()}
+              disabled={loading || !input.trim() || !modelConfig}
               className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-blue-600/20 hover:shadow-lg hover:shadow-blue-600/30 flex items-center justify-center"
               title="发送消息"
             >
@@ -252,7 +349,7 @@ export default function ChatPage() {
             <p>按 Enter 发送消息，Shift + Enter 换行</p>
             <p className="flex items-center gap-1">
               <Sparkles size={12} />
-              由智谱 GLM-4 提供支持
+              {modelConfig ? `${modelConfig.name} (${modelConfig.models[0]})` : '请配置模型'}
             </p>
           </div>
         </div>
@@ -262,11 +359,19 @@ export default function ChatPage() {
       {error && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 bg-red-100 dark:bg-red-900/30 text-red-900 dark:text-red-100 px-6 py-3 rounded-xl shadow-lg border border-red-200 dark:border-red-800 z-50 animate-in slide-in-from-top fade-in duration-300">
           <p className="flex items-center gap-2">
-            <span className="font-medium">错误:</span>
-            {error}
+            <AlertCircle size={16} />
+            <span className="font-medium">{error}</span>
           </p>
         </div>
       )}
+
+      {/* 模型配置对话框 */}
+      <ModelConfig
+        isOpen={showConfig}
+        onClose={() => setShowConfig(false)}
+        onConfigChange={handleConfigChange}
+        currentConfig={modelConfig || undefined}
+      />
     </div>
   );
 }
