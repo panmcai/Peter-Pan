@@ -78,6 +78,15 @@ export class VisitorManager {
       return response;
     } catch (error) {
       clearTimeout(timeoutId);
+
+      // 区分错误类型，便于调试
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          console.warn(`[VisitorManager] Request aborted for ${url}:`, error.message);
+        } else {
+          console.error(`[VisitorManager] Network error for ${url}:`, error);
+        }
+      }
       throw error;
     }
   }
@@ -119,29 +128,31 @@ export class VisitorManager {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('[VisitorManager] API request failed:', errorText);
-        // API 请求失败，降级到 localStorage
-        console.warn('[VisitorManager] Failed to record visit, using localStorage fallback');
-        const currentCount = this.getLocalCount();
-        this.setLocalCount(currentCount + 1);
+        // API 请求失败，不修改 localStorage（让 getVisitorCount 处理）
+        console.warn('[VisitorManager] Failed to record visit, skipping localStorage update');
         return false;
       }
 
       console.log('[VisitorManager] API request succeeded');
 
-      // API 请求成功，清除 localStorage 中的临时值
-      try {
-        localStorage.removeItem('visitorCount');
-      } catch (error) {
-        // 清除失败时静默处理
-      }
+      // API 请求成功，不要清除 localStorage，保持缓存以便立即显示
 
       return true;
     } catch (error) {
-      console.error('[VisitorManager] Network error:', error);
-      // 网络错误或超时，降级到 localStorage
-      console.warn('[VisitorManager] Network error, using localStorage fallback');
-      const currentCount = this.getLocalCount();
-      this.setLocalCount(currentCount + 1);
+      // 区分错误类型
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          console.warn('[VisitorManager] Request aborted (likely page refresh or timeout):', error.message);
+        } else {
+          console.error('[VisitorManager] Network error:', error);
+        }
+      } else {
+        console.error('[VisitorManager] Unknown error:', error);
+      }
+
+      // 网络错误或超时，不修改 localStorage（让 getVisitorCount 处理）
+      console.warn('[VisitorManager] Skipping localStorage update, will use cached value');
+
       return false;
     }
   }
@@ -183,18 +194,29 @@ export class VisitorManager {
 
       console.log('[VisitorManager] Got count from API:', count);
 
-      // API 请求成功，清除 localStorage 中的临时值（确保不使用过期数据）
+      // API 请求成功，更新 localStorage 缓存（而不是清除）
+      // 这样可以确保显示最新的值，同时避免重复计数
       try {
-        localStorage.removeItem('visitorCount');
+        localStorage.setItem('visitorCount', String(count));
       } catch (error) {
-        // 清除失败时静默处理
+        // 更新缓存失败时静默处理
       }
 
       return count;
     } catch (error) {
-      console.error('[VisitorManager] Network error:', error);
+      // 区分错误类型
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          console.warn('[VisitorManager] Request aborted (likely page refresh or timeout):', error.message);
+        } else {
+          console.error('[VisitorManager] Network error:', error);
+        }
+      } else {
+        console.error('[VisitorManager] Unknown error:', error);
+      }
+
       // 网络错误或超时，降级到本地计数
-      console.warn('[VisitorManager] Network error, using localStorage fallback');
+      console.warn('[VisitorManager] Using localStorage fallback');
       const localCount = this.getLocalCount();
       console.log('[VisitorManager] Using localStorage count:', localCount);
       return localCount;
