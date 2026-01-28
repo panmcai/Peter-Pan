@@ -43,21 +43,50 @@ export default function Home() {
   useEffect(() => {
     setIsMounted(true);
 
+    console.log('📍 [Home] useEffect triggered');
+
     // 异步函数：记录访问并更新访问量
     const updateVisitCount = async () => {
+      console.log('📍 [Home] updateVisitCount called');
+
+      // 防止重复记录：使用 sessionStorage 标记当前会话已记录
+      const sessionKey = 'visit_recorded_session';
+      const isRecorded = sessionStorage.getItem(sessionKey);
+
+      console.log('📍 [Home] sessionStorage status:', isRecorded);
+
+      if (isRecorded) {
+        console.log('📍 [Home] Already recorded, just updating display');
+        // 当前会话已记录过，只更新显示，不再次记录
+        const latestCount = await visitorManager.getVisitorCountWithFallback();
+        console.log('📍 [Home] Got latest count:', latestCount);
+        setVisitorCount(latestCount);
+        return;
+      }
+
+      console.log('📍 [Home] Not recorded yet, will record visit');
+
+      // 标记当前会话已记录（sessionStorage 在浏览器关闭后清除）
+      sessionStorage.setItem(sessionKey, 'true');
+      console.log('📍 [Home] Set sessionStorage to true');
+
       try {
+        console.log('📍 [Home] Calling recordVisit...');
         // 1. 记录此次访问（自动降级到 localStorage 如果 Supabase 不可用）
-        await visitorManager.recordVisit('/');
+        const result = await visitorManager.recordVisit('/');
+        console.log('📍 [Home] recordVisit result:', result);
 
         // 2. 获取最新的访问量（自动降级到 localStorage）
+        console.log('📍 [Home] Getting visitor count...');
         const latestCount = await visitorManager.getVisitorCountWithFallback();
+        console.log('📍 [Home] Got latest count:', latestCount);
 
         // 3. 更新显示
         setVisitorCount(latestCount);
+        console.log('📍 [Home] Updated display');
       } catch (error) {
+        console.error('📍 [Home] Failed to update visit count:', error);
         // 即使出错，也使用本地存储的值
-        console.error('[Home] Failed to update visit count:', error);
-        // 不再使用随机数，直接使用本地存储或 0
         const storedCount = localStorage.getItem('visitorCount');
         setVisitorCount(storedCount ? parseInt(storedCount) : 0);
       }
@@ -200,20 +229,19 @@ export default function Home() {
               <Link
                 key={index}
                 href={link.href}
-                className="group relative overflow-hidden rounded-2xl border border-zinc-200 bg-white p-6 transition-all hover:shadow-xl dark:border-zinc-800 dark:bg-zinc-900/50"
+                className="group relative overflow-hidden rounded-2xl bg-white p-8 shadow-lg transition-all hover:shadow-2xl dark:bg-zinc-900 dark:shadow-zinc-950/50"
               >
-                <div className={`absolute inset-0 bg-gradient-to-r ${link.color} opacity-0 transition-opacity group-hover:opacity-10`} />
-                <div className="relative flex items-start gap-4">
-                  <div className={`rounded-xl bg-gradient-to-r ${link.color} p-3`}>
-                    <link.icon className="text-white" size={24} />
+                <div className={`absolute inset-0 bg-gradient-to-br ${link.color} opacity-0 transition-opacity group-hover:opacity-10`} />
+                <div className="relative">
+                  <div className={`mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br ${link.color}`}>
+                    <link.icon className="text-white" size={32} />
                   </div>
-                  <div className="flex-1">
-                    <h3 className="mb-2 text-xl font-semibold text-zinc-900 dark:text-zinc-50">
-                      {link.title}
-                    </h3>
-                    <p className="text-zinc-600 dark:text-zinc-400">{link.description}</p>
-                  </div>
-                  <ArrowRight className="text-zinc-400 transition-transform group-hover:translate-x-1" size={20} />
+                  <h3 className="mb-2 text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+                    {link.title}
+                  </h3>
+                  <p className="text-zinc-600 dark:text-zinc-400">
+                    {link.description}
+                  </p>
                 </div>
               </Link>
             ))}
@@ -222,50 +250,38 @@ export default function Home() {
       </section>
 
       {/* Featured Tools Section */}
-      <section className="border-t border-zinc-200 bg-zinc-50 px-4 py-20 dark:border-zinc-800 dark:bg-zinc-900/30">
+      <section className="px-4 py-20 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-6xl">
-          <div className="mb-12 flex items-center justify-between">
-            <h2 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">
-              自研工具推荐
-            </h2>
-            <Link
-              href="/tools"
-              className="flex items-center gap-2 text-sm font-medium text-blue-600 transition-colors hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-            >
-              查看全部
-              <ArrowRight size={16} />
-            </Link>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <h2 className="mb-12 text-center text-3xl font-bold text-zinc-900 dark:text-zinc-50">
+            精选工具
+          </h2>
+          <div className="grid gap-6 md:grid-cols-3">
             {featuredTools.map((tool, index) => (
               <a
                 key={index}
                 href={tool.link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`group relative overflow-hidden rounded-xl border bg-white p-4 transition-all hover:shadow-lg dark:bg-zinc-900 ${
-                  tool.isSelfDeveloped
-                    ? 'border-2 border-green-300 hover:border-green-500 dark:border-green-700 dark:hover:border-green-500'
-                    : 'border-zinc-200 hover:border-blue-300 dark:border-zinc-800 dark:hover:border-blue-700'
-                }`}
+                className="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-lg transition-all hover:-translate-y-1 hover:shadow-2xl dark:bg-zinc-900 dark:shadow-zinc-950/50"
               >
-                {tool.isSelfDeveloped && (
-                  <span className="absolute right-2 top-2 rounded-full bg-green-500 px-2 py-0.5 text-xs font-medium text-white">
-                    自研
-                  </span>
-                )}
-                <div className="mb-3 flex items-center justify-between">
-                  <span className="text-2xl">{tool.icon}</span>
-                  <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                    {tool.usage}% 使用率
-                  </span>
+                <div className="mb-4 flex items-center justify-between">
+                  <span className="text-4xl">{tool.icon}</span>
+                  {tool.isSelfDeveloped && (
+                    <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+                      自研
+                    </span>
+                  )}
                 </div>
-                <h3 className="font-semibold text-zinc-900 dark:text-zinc-50 group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                <h3 className="mb-2 text-xl font-bold text-zinc-900 dark:text-zinc-50">
                   {tool.name}
                 </h3>
-                <div className="mt-3 h-2 w-full rounded-full bg-zinc-200 dark:bg-zinc-800">
+                <div className="mb-4 flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
+                  <span className="font-medium">{tool.usage}%</span>
+                  <span>使用率</span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-zinc-200 dark:bg-zinc-800">
                   <div
-                    className="h-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-500"
+                    className="h-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all group-hover:from-blue-600 group-hover:to-purple-600"
                     style={{ width: `${tool.usage}%` }}
                   />
                 </div>
@@ -274,6 +290,15 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Footer */}
+      <footer className="border-t border-zinc-200 bg-white px-4 py-12 dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="mx-auto max-w-6xl text-center">
+          <p className="text-zinc-600 dark:text-zinc-400">
+            © 2026 Peter·Pan. All rights reserved.
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
