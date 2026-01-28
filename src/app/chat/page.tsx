@@ -14,7 +14,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: '你好！我是 Peter·Pan 的 AI 助手。我可以帮助你回答问题、提供信息或者只是聊聊天。\n\n⚠️ 请先点击右上角的「设置」按钮配置大模型。\n\n💡 推荐使用 **智谱 AI** 的 **GLM-Z1-Flash** 模型，这是一款完全免费的极速大模型，性能优秀，适合日常使用。',
+      content: '你好！我是 Peter·Pan 的 AI 助手。我可以帮助你回答问题、提供信息或者只是聊聊天。\n\n⚠️ 请先点击右上角的「设置」按钮配置大模型。\n\n💡 推荐使用 **智谱 AI** 的 **GLM-4-Flash** 模型，这是一款极速大模型，性能优秀，适合日常使用。',
       timestamp: new Date(),
     },
   ]);
@@ -144,7 +144,7 @@ export default function ChatPage() {
         role: 'assistant',
         content: modelConfig
           ? '你好！我是 Peter·Pan 的 AI 助手。我可以帮助你回答问题、提供信息或者只是聊聊天。请问有什么我可以帮助你的吗？'
-          : '你好！我是 Peter·Pan 的 AI 助手。我可以帮助你回答问题、提供信息或者只是聊聊天。\n\n⚠️ 请先点击右上角的「设置」按钮配置大模型。\n\n💡 推荐使用 **智谱 AI** 的 **GLM-Z1-Flash** 模型，这是一款完全免费的极速大模型，性能优秀，适合日常使用。',
+          : '你好！我是 Peter·Pan 的 AI 助手。我可以帮助你回答问题、提供信息或者只是聊聊天。\n\n⚠️ 请先点击右上角的「设置」按钮配置大模型。\n\n💡 推荐使用 **智谱 AI** 的 **GLM-4-Flash** 模型，这是一款极速大模型，性能优秀，适合日常使用。',
         timestamp: new Date(),
       },
     ]);
@@ -317,7 +317,7 @@ export default function ChatPage() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder={modelConfig ? "输入消息... (Enter 发送，Shift + Enter 换行)" : "请先配置模型，推荐使用智谱 AI GLM-Z1-Flash（免费）..."}
+              placeholder={modelConfig ? "输入消息... (Enter 发送，Shift + Enter 换行)" : "请先配置模型，推荐使用智谱 AI GLM-4-Flash..."}
               rows={1}
               className="w-full px-6 py-4 pr-16 border border-zinc-200 dark:border-zinc-700 rounded-2xl bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none shadow-sm transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-500 text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={loading || !modelConfig}
