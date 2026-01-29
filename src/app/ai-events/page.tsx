@@ -39,6 +39,49 @@ export default function AIEvents() {
   const [refreshing, setRefreshing] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isNewsExpanded, setIsNewsExpanded] = useState(false);
+  const [dataSource, setDataSource] = useState<'cache' | 'api' | null>(null);
+
+  // 缓存配置
+  const CACHE_KEY = 'ai_events_data';
+  const CACHE_DURATION = 10800000; // 3 小时
+
+  // 从 localStorage 获取缓存
+  const getCachedData = (): AIEventsData | null => {
+    try {
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (!cached) return null;
+
+      const { data, timestamp } = JSON.parse(cached);
+      const now = Date.now();
+
+      // 检查缓存是否过期
+      if (now - timestamp > CACHE_DURATION) {
+        console.log('[AI Events] 本地缓存已过期');
+        localStorage.removeItem(CACHE_KEY);
+        return null;
+      }
+
+      console.log('[AI Events] 使用本地缓存');
+      return data;
+    } catch (error) {
+      console.error('[AI Events] 读取缓存失败:', error);
+      return null;
+    }
+  };
+
+  // 保存数据到 localStorage
+  const setCachedData = (data: AIEventsData) => {
+    try {
+      const cache = {
+        data,
+        timestamp: Date.now(),
+      };
+      localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+      console.log('[AI Events] 数据已缓存到本地');
+    } catch (error) {
+      console.error('[AI Events] 保存缓存失败:', error);
+    }
+  };
 
   // 轮播图自动切换
   useEffect(() => {
@@ -58,6 +101,21 @@ export default function AIEvents() {
 
   const loadData = async (forceRefresh = false) => {
     try {
+      // 如果不是强制刷新，先尝试使用本地缓存
+      if (!forceRefresh) {
+        const cachedData = getCachedData();
+        if (cachedData) {
+          console.log('[AI Events] 使用本地缓存数据');
+          setData(cachedData);
+          setLoading(false);
+          setError(null);
+          setDataSource('cache');
+          return;
+        }
+      }
+
+      console.log('[AI Events] 缓存无效或强制刷新，请求 API');
+
       if (forceRefresh) {
         setRefreshing(true);
       } else {
@@ -85,6 +143,10 @@ export default function AIEvents() {
       console.log('[AI Events Page] 加载数据成功:', result);
       setData(result);
       setError(null);
+      setDataSource('api');
+
+      // 保存到本地缓存
+      setCachedData(result);
     } catch (err) {
       console.error('[AI Events Page] 加载数据失败:', err);
       setError(err instanceof Error ? err.message : '未知错误');
@@ -178,11 +240,19 @@ export default function AIEvents() {
             </p>
           </div>
           <div className="flex items-center gap-4">
-            {data.lastUpdated && (
-              <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                最后更新: {new Date(data.lastUpdated).toLocaleString('zh-CN')}
-              </span>
-            )}
+            <div className="flex items-center gap-3">
+              {dataSource === 'cache' && (
+                <span className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400 rounded-full">
+                  <Zap size={12} />
+                  缓存
+                </span>
+              )}
+              {data.lastUpdated && (
+                <span className="text-sm text-zinc-600 dark:text-zinc-400">
+                  最后更新: {new Date(data.lastUpdated).toLocaleString('zh-CN')}
+                </span>
+              )}
+            </div>
             <button
               onClick={handleRefresh}
               disabled={refreshing}
