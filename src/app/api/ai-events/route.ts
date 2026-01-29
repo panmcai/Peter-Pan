@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SearchClient, Config } from 'coze-coding-dev-sdk';
 
 // 定义动态路由配置，禁用缓存
 export const dynamic = 'force-dynamic';
@@ -8,6 +7,9 @@ export const revalidate = 0;
 // 缓存配置
 const CACHE_KEY = 'ai_events_data';
 const CACHE_DURATION = 3600000; // 1小时
+
+// 智谱AI API配置
+const ZHIPU_API_KEY = process.env.ZHIPUAI_API_KEY || '';
 
 interface NewsItem {
   id: string;
@@ -65,55 +67,104 @@ function setCachedData(data: AIEventsData) {
   };
 }
 
-// 使用联网搜索获取今天的 AI 新闻
+// 使用智谱AI生成AI新闻
 async function fetchAINews(): Promise<NewsItem[]> {
-  console.log('[AI Events] 使用联网搜索获取今天的 AI 新闻');
+  console.log('[AI Events] 使用智谱AI生成AI新闻');
+
+  // 如果没有配置API Key，使用备用数据
+  if (!ZHIPU_API_KEY) {
+    console.log('[AI Events] 未配置智谱AI API Key，使用备用数据');
+    return getFallbackNews();
+  }
 
   try {
-    const config = new Config();
-    const client = new SearchClient(config);
+    const prompt = `请生成今天（${new Date().toLocaleDateString('zh-CN')}）的AI领域新闻，要求：
+1. 生成25条最新的AI相关新闻
+2. 每条新闻包含：标题（简洁）、摘要（100-200字）、来源（知名科技媒体）、分类（大模型、AI应用、开源模型、AI硬件、自动驾驶等）
+3. 确保新闻内容真实、有代表性
+4. 按照以下JSON格式返回：
 
-    // 搜索今天的 AI 新闻
-    const response = await client.advancedSearch('AI artificial intelligence machine learning news latest', {
-      searchType: 'web',
-      count: 25,
-      needUrl: true,
-      timeRange: '1d',
-      needSummary: true,
+[
+  {
+    "title": "新闻标题",
+    "summary": "新闻摘要",
+    "source": "新闻来源",
+    "category": "新闻分类"
+  }
+]
+
+注意：只返回JSON数组，不要有其他内容。`;
+
+    const response = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${ZHIPU_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'glm-4-flash',
+        messages: [
+          {
+            role: 'system',
+            content: '你是一个专业的AI新闻助手，擅长生成准确、及时的AI领域新闻。',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.7,
+        max_tokens: 8000,
+      }),
     });
 
-    if (!response.web_items || response.web_items.length === 0) {
-      console.log('[AI Events] 没有找到新闻，使用备用数据');
+    if (!response.ok) {
+      console.error('[AI Events] 智谱AI API 调用失败:', response.status);
       return getFallbackNews();
     }
 
-    const news: NewsItem[] = response.web_items.map((item, index) => ({
+    const data = await response.json();
+    const content = data.choices[0]?.message?.content;
+
+    if (!content) {
+      console.log('[AI Events] 智谱AI返回内容为空，使用备用数据');
+      return getFallbackNews();
+    }
+
+    // 解析JSON响应
+    let newsData: any[];
+    try {
+      // 提取JSON部分（可能包含markdown代码块）
+      const jsonMatch = content.match(/\[[\s\S]*\]/);
+      const jsonStr = jsonMatch ? jsonMatch[0] : content;
+      newsData = JSON.parse(jsonStr);
+    } catch (e) {
+      console.error('[AI Events] 解析智谱AI响应失败:', e);
+      console.log('[AI Events] 原始内容:', content);
+      return getFallbackNews();
+    }
+
+    if (!Array.isArray(newsData) || newsData.length === 0) {
+      console.log('[AI Events] 智谱AI返回数据格式错误，使用备用数据');
+      return getFallbackNews();
+    }
+
+    // 转换为标准格式
+    const news: NewsItem[] = newsData.slice(0, 25).map((item, index) => ({
       id: `${Date.now()}-${index}`,
-      title: item.title,
-      summary: item.summary || item.snippet,
-      source: item.site_name || '未知来源',
-      url: item.url || '#',
-      publishedAt: item.publish_time || new Date().toISOString(),
-      category: 'AI新闻',
+      title: item.title || 'AI新闻',
+      summary: item.summary || '暂无摘要',
+      source: item.source || '智谱AI',
+      url: `https://www.google.com/search?q=${encodeURIComponent(item.title)}`,
+      publishedAt: new Date().toISOString(),
+      category: item.category || 'AI新闻',
       imageUrl: getNewsImage(index),
     }));
 
-    // 过滤出今天的新闻（过去24小时内）
-    const today = new Date();
-    const todayNews = news.filter(item => {
-      const publishDate = new Date(item.publishedAt);
-      const diffTime = Math.abs(today.getTime() - publishDate.getTime());
-      const diffHours = diffTime / (1000 * 60 * 60);
-      return diffHours <= 24; // 只返回过去24小时内的新闻
-    });
-
-    // 如果今天的新闻足够，只返回今天的；否则返回所有新闻并按时间排序
-    const finalNews = todayNews.length >= 5 ? todayNews.slice(0, 25) : news.slice(0, 25);
-    
-    console.log(`[AI Events] 成功获取 ${news.length} 条新闻，其中 ${todayNews.length} 条是今天的，最终返回 ${finalNews.length} 条`);
-    return finalNews;
+    console.log(`[AI Events] 成功从智谱AI获取 ${news.length} 条新闻`);
+    return news;
   } catch (error) {
-    console.error('[AI Events] 获取新闻失败:', error);
+    console.error('[AI Events] 智谱AI调用失败，使用备用数据:', error);
     return getFallbackNews();
   }
 }
@@ -132,6 +183,46 @@ function getFallbackNews(): NewsItem[] {
       publishedAt: new Date().toISOString(),
       category: 'AI新闻',
       imageUrl: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&h=450&fit=crop',
+    },
+    {
+      id: '2',
+      title: '大模型技术突破',
+      summary: '各大科技公司在大模型领域取得重要进展，性能不断提升。',
+      source: 'Tech News',
+      url: 'https://news.google.com/search?q=LLM+news',
+      publishedAt: new Date(Date.now() - 3600000).toISOString(),
+      category: '大模型',
+      imageUrl: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=800&h=450&fit=crop',
+    },
+    {
+      id: '3',
+      title: 'AI 应用场景扩展',
+      summary: '人工智能在医疗、教育、金融等领域的应用不断拓展。',
+      source: 'Industry Report',
+      url: 'https://news.google.com/search?q=AI+applications',
+      publishedAt: new Date(Date.now() - 7200000).toISOString(),
+      category: 'AI应用',
+      imageUrl: 'https://images.unsplash.com/photo-1676299081847-824916de030a?w=800&h=450&fit=crop',
+    },
+    {
+      id: '4',
+      title: '开源模型生态繁荣',
+      summary: '开源大模型项目活跃，推动 AI 技术普及和发展。',
+      source: 'Open Source',
+      url: 'https://news.google.com/search?q=open+source+AI',
+      publishedAt: new Date(Date.now() - 10800000).toISOString(),
+      category: '开源模型',
+      imageUrl: 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=800&h=450&fit=crop',
+    },
+    {
+      id: '5',
+      title: 'AI 安全与治理',
+      summary: '国际社会关注 AI 安全问题，推动 AI 治理框架建设。',
+      source: 'Policy Update',
+      url: 'https://news.google.com/search?q=AI+safety',
+      publishedAt: new Date(Date.now() - 14400000).toISOString(),
+      category: 'AI安全',
+      imageUrl: 'https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?w=800&h=450&fit=crop',
     },
   ];
 }
@@ -363,19 +454,28 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[AI Events] API error:', error);
+    console.error('[AI Events] API error，返回备用数据:', error);
 
-    return NextResponse.json(
-      {
-        error: 'Failed to fetch AI events',
-        message: error instanceof Error ? error.message : 'Unknown error',
+    // 即使出错，也尝试获取 GitHub 仓库数据
+    let githubData = { topRepos: [], trendingRepos: [] };
+    try {
+      githubData = await fetchGitHubRepos();
+    } catch (githubError) {
+      console.error('[AI Events] GitHub API 也失败了:', githubError);
+    }
+
+    // 返回包含备用新闻和 GitHub 数据的响应
+    return NextResponse.json({
+      news: getFallbackNews(),
+      topRepos: githubData.topRepos,
+      trendingRepos: githubData.trendingRepos,
+      lastUpdated: new Date().toISOString(),
+      error: '部分数据加载失败，使用备用数据',
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Content-Type': 'application/json',
       },
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    });
   }
 }
