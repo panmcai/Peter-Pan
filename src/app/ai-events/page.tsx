@@ -161,8 +161,8 @@ export default function AIEvents() {
     return diffHours <= 24;
   }).length;
 
-  const topNews = data.news.slice(0, 5);
-  const remainingNews = data.news.slice(5);
+  const topNews = data.news.slice(0, 30);
+  const remainingNews = data.news.slice(9);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
@@ -329,7 +329,7 @@ export default function AIEvents() {
                 <span className="text-sm text-zinc-600 dark:text-zinc-400">
                   共 {Math.min(30, data.news.length)} 条
                 </span>
-                {data.news.length > 3 && (
+                {data.news.length > 9 && (
                   <button
                     onClick={() => setIsNewsExpanded(!isNewsExpanded)}
                     className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors"
@@ -340,7 +340,7 @@ export default function AIEvents() {
               </div>
             </div>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {data.news.slice(0, isNewsExpanded ? 30 : 3).map((news, index) => (
+              {data.news.slice(0, isNewsExpanded ? 30 : 9).map((news, index) => (
                 <a
                   key={news.id}
                   href={news.url || '#'}
@@ -367,7 +367,7 @@ export default function AIEvents() {
                       <span className="text-xs text-zinc-600 dark:text-zinc-400">
                         {news.source}
                       </span>
-                      {index < 5 && (
+                      {index < 9 && (
                         <span className="px-2 py-1 text-xs font-medium bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 rounded-full">
                           Top {index + 1}
                         </span>
@@ -388,7 +388,7 @@ export default function AIEvents() {
               ))}
             </div>
             {/* 底部展开/收起按钮 */}
-            {data.news.length > 3 && (
+            {data.news.length > 9 && (
               <div className="mt-6 text-center">
                 <button
                   onClick={() => setIsNewsExpanded(!isNewsExpanded)}
