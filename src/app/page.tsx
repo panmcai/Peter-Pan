@@ -129,22 +129,30 @@ export default function Home() {
   };
 
   // 实际执行预加载的函数
-  const performPreload = () => {
+  const performPreload = async () => {
     console.log('[Home] 执行 AI 大事件数据预加载...');
     try {
-      fetch('/api/ai-events', {
+      const response = await fetch('/api/ai-events', {
         cache: 'no-store',
-      }).then(response => {
-        if (response.ok) {
-          console.log('[Home] AI 大事件数据预加载成功');
-        } else {
-          console.log('[Home] AI 大事件数据预加载响应异常:', response.status);
-        }
-      }).catch(error => {
-        console.log('[Home] AI 大事件数据预加载失败:', error);
       });
+
+      if (response.ok) {
+        const data = await response.json();
+
+        // 保存到 localStorage
+        const CACHE_KEY = 'ai_events_data';
+        const cache = {
+          data: data,
+          timestamp: Date.now(),
+        };
+        localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+
+        console.log('[Home] AI 大事件数据预加载成功并已缓存到本地');
+      } else {
+        console.log('[Home] AI 大事件数据预加载响应异常:', response.status);
+      }
     } catch (error) {
-      console.log('[Home] AI 大事件数据预加载异常:', error);
+      console.log('[Home] AI 大事件数据预加载失败:', error);
     }
   };
 
