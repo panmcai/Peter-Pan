@@ -27,12 +27,78 @@ export default function ChatPage() {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const initialMessageCountRef = useRef<number>(1); // 初始有1条欢迎消息
 
+  // 聊天记录缓存配置
+  const CHAT_CACHE_KEY = 'chat_history';
+  const CHAT_CACHE_DURATION = 86400000; // 24 小时
+
+  // 从 localStorage 加载聊天记录
+  const loadChatHistory = (): Message[] | null => {
+    try {
+      const cached = localStorage.getItem(CHAT_CACHE_KEY);
+      if (!cached) return null;
+
+      const { messages: savedMessages, timestamp } = JSON.parse(cached);
+      const now = Date.now();
+
+      // 检查缓存是否过期
+      if (now - timestamp > CHAT_CACHE_DURATION) {
+        console.log('[Chat] 聊天记录缓存已过期');
+        localStorage.removeItem(CHAT_CACHE_KEY);
+        return null;
+      }
+
+      console.log('[Chat] 加载本地聊天记录，共', savedMessages.length, '条消息');
+      // 转换 timestamp 为 Date 对象
+      return savedMessages.map((msg: any) => ({
+        ...msg,
+        timestamp: new Date(msg.timestamp),
+      }));
+    } catch (error) {
+      console.error('[Chat] 加载聊天记录失败:', error);
+      return null;
+    }
+  };
+
+  // 保存聊天记录到 localStorage
+  const saveChatHistory = (msgs: Message[]) => {
+    try {
+      // 只保存最近 100 条消息
+      const messagesToSave = msgs.slice(-100);
+      const cache = {
+        messages: messagesToSave,
+        timestamp: Date.now(),
+      };
+      localStorage.setItem(CHAT_CACHE_KEY, JSON.stringify(cache));
+      console.log('[Chat] 聊天记录已保存到本地，共', messagesToSave.length, '条消息');
+    } catch (error) {
+      console.error('[Chat] 保存聊天记录失败:', error);
+    }
+  };
+
+  // 清除聊天记录缓存
+  const clearChatHistoryCache = () => {
+    try {
+      localStorage.removeItem(CHAT_CACHE_KEY);
+      console.log('[Chat] 聊天记录缓存已清除');
+    } catch (error) {
+      console.error('[Chat] 清除聊天记录缓存失败:', error);
+    }
+  };
+
   // 从 localStorage 加载配置
   useEffect(() => {
     const saved = localStorage.getItem('current-model-config');
     if (saved) {
       setModelConfig(JSON.parse(saved));
     }
+
+    // 加载聊天记录
+    const chatHistory = loadChatHistory();
+    if (chatHistory && chatHistory.length > 0) {
+      setMessages(chatHistory);
+      initialMessageCountRef.current = chatHistory.length;
+    }
+
     // 页面加载时滚动到顶部
     window.scrollTo(0, 0);
   }, []);
@@ -57,6 +123,8 @@ export default function ChatPage() {
 
   useEffect(() => {
     scrollToBottom();
+    // 保存聊天记录到 localStorage
+    saveChatHistory(messages);
   }, [messages]);
 
   const sendMessage = async () => {
@@ -162,6 +230,8 @@ export default function ChatPage() {
     setError(null);
     // 更新初始消息计数
     initialMessageCountRef.current = newMessages.length;
+    // 清除聊天记录缓存
+    clearChatHistoryCache();
   };
 
   const handleConfigChange = (config: AIModelConfig) => {
