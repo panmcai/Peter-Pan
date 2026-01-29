@@ -2,7 +2,7 @@
 
 import { ArrowRight, Code, BookOpen, Wrench, Users, Palette } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useLayoutEffect, useState, useRef } from 'react';
 import { visitorManager } from '@/storage/database/visitorManager';
 
 // 背景主题配置
@@ -35,79 +35,118 @@ const backgroundThemes = [
 ];
 
 export default function Home() {
-  const [visitorCount, setVisitorCount] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [visitorCount, setVisitorCount] = useState<number>(0);
   const [currentTheme, setCurrentTheme] = useState('default');
   const [showThemeSelector, setShowThemeSelector] = useState(false);
 
-  useEffect(() => {
-    console.log('📍 [Home] useEffect triggered');
+  // 使用 useRef 防止重复调用
+  const isUpdatingRef = useRef(false);
 
-    // 异步函数：记录访问并更新访问量
-    const updateVisitCount = async () => {
-      console.log('📍 [Home] updateVisitCount called');
+  // 使用 useLayoutEffect 在第一次渲染前立即读取缓存
+  useLayoutEffect(() => {
+    console.log('📍 [Home] useLayoutEffect triggered');
 
-      // 防止重复记录：使用 sessionStorage 标记当前会话已记录
+    // 防止重复执行
+    if (isUpdatingRef.current) {
+      console.log('📍 [Home] Update already in progress, skipping');
+      return;
+    }
+    isUpdatingRef.current = true;
+
+    // 立即读取 localStorage 缓存
+    const cachedCount = localStorage.getItem('visitorCount');
+    if (cachedCount) {
+      const count = parseInt(cachedCount);
+      setVisitorCount(count);
+      console.log('📍 [Home] Loaded from cache:', count);
+    } else {
+      console.log('📍 [Home] No cache found, initial value:', visitorCount);
+    }
+
+    // 异步更新最新数据
+    const updateLatestCount = async () => {
+      console.log('📍 [Home] Updating latest count');
+
       const sessionKey = 'visit_recorded_session';
       const isRecorded = sessionStorage.getItem(sessionKey);
 
-      console.log('📍 [Home] sessionStorage status:', isRecorded);
+      console.log('📍 [Home] Session recorded:', isRecorded);
 
-      if (isRecorded) {
-        console.log('📍 [Home] Already recorded, just updating display');
-        // 当前会话已记录过，只更新显示，不再次记录
-        const latestCount = await visitorManager.getVisitorCountWithFallback();
-        console.log('📍 [Home] Got latest count:', latestCount);
-        setVisitorCount(latestCount);
-        setIsLoading(false);
-        return;
+      if (!isRecorded) {
+        console.log('📍 [Home] Recording new visit...');
+        sessionStorage.setItem(sessionKey, 'true');
+        try {
+          const result = await visitorManager.recordVisit('/');
+          console.log('📍 [Home] recordVisit result:', result);
+        } catch (error) {
+          console.error('📍 [Home] Failed to record visit:', error);
+        }
+      } else {
+        console.log('📍 [Home] Session already recorded, skipping recordVisit');
       }
-
-      console.log('📍 [Home] Not recorded yet, will record visit');
-
-      // 标记当前会话已记录（sessionStorage 在浏览器关闭后清除）
-      sessionStorage.setItem(sessionKey, 'true');
-      console.log('📍 [Home] Set sessionStorage to true');
 
       try {
-        console.log('📍 [Home] Calling recordVisit...');
-        // 1. 记录此次访问（自动降级到 localStorage 如果 Supabase 不可用）
-        const result = await visitorManager.recordVisit('/');
-        console.log('📍 [Home] recordVisit result:', result);
-
-        // 2. 获取最新的访问量（自动降级到 localStorage）
-        console.log('📍 [Home] Getting visitor count...');
         const latestCount = await visitorManager.getVisitorCountWithFallback();
         console.log('📍 [Home] Got latest count:', latestCount);
-
-        // 3. 更新显示
+        console.log('📍 [Home] Updating visitorCount from', visitorCount, 'to', latestCount);
         setVisitorCount(latestCount);
-        console.log('📍 [Home] Updated display');
-        setIsLoading(false);
       } catch (error) {
-        console.error('📍 [Home] Failed to update visit count:', error);
-        // 即使出错，也使用本地存储的值
-        const storedCount = localStorage.getItem('visitorCount');
-        setVisitorCount(storedCount ? parseInt(storedCount) : 0);
-        setIsLoading(false);
+        console.error('📍 [Home] Failed to get latest count:', error);
       }
+
+      // 重置标志
+      isUpdatingRef.current = false;
     };
 
-    // 先从 localStorage 读取缓存的访问量，避免显示0
-    const cachedCount = localStorage.getItem('visitorCount');
-    if (cachedCount) {
-      setVisitorCount(parseInt(cachedCount));
-    }
-
-    // 执行访问统计更新
-    updateVisitCount();
+    updateLatestCount();
 
     // 从localStorage获取保存的主题
     const savedTheme = localStorage.getItem('backgroundTheme');
     if (savedTheme && backgroundThemes.find(t => t.id === savedTheme)) {
       setCurrentTheme(savedTheme);
     }
+
+    // 预加载 AI 大事件数据
+    preloadAIEventsData();
   }, []);
+
+  // 预加载 AI 大事件数据 - 使用 requestIdleCallback 确保不阻塞前端
+  const preloadAIEventsData = () => {
+    // 使用 requestIdleCallback 在浏览器空闲时执行
+    if ('requestIdleCallback' in window) {
+      (window as any).requestIdleCallback(() => {
+        console.log('[Home] 浏览器空闲，开始预加载 AI 大事件数据...');
+        performPreload();
+      }, { timeout: 3000 }); // 超时 3 秒后强制执行
+    } else {
+      // 不支持 requestIdleCallback 时使用 setTimeout 延迟执行
+      console.log('[Home] 浏览器不支持 requestIdleCallback，使用延迟加载');
+      setTimeout(() => {
+        console.log('[Home] 延迟预加载 AI 大事件数据...');
+        performPreload();
+      }, 2000); // 延迟 2 秒执行
+    }
+  };
+
+  // 实际执行预加载的函数
+  const performPreload = () => {
+    console.log('[Home] 执行 AI 大事件数据预加载...');
+    try {
+      fetch('/api/ai-events', {
+        cache: 'no-store',
+      }).then(response => {
+        if (response.ok) {
+          console.log('[Home] AI 大事件数据预加载成功');
+        } else {
+          console.log('[Home] AI 大事件数据预加载响应异常:', response.status);
+        }
+      }).catch(error => {
+        console.log('[Home] AI 大事件数据预加载失败:', error);
+      });
+    } catch (error) {
+      console.log('[Home] AI 大事件数据预加载异常:', error);
+    }
+  };
 
   const quickLinks = [
     {
@@ -211,9 +250,8 @@ export default function Home() {
             {[
               {
                 label: '总访问量',
-                value: isLoading ? null : visitorCount,
+                value: visitorCount,
                 icon: Users,
-                isLoading: isLoading,
               },
               { label: '实用工具', value: '11', icon: Wrench },
               { label: '技术文章', value: '6', icon: BookOpen },
@@ -222,21 +260,9 @@ export default function Home() {
                 <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
                   <stat.icon className="text-blue-600 dark:text-blue-400" size={24} />
                 </div>
-                {stat.isLoading ? (
-                  <p className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">
-                    <span className="inline-flex items-center gap-2">
-                      <span className="h-8 w-20 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
-                    </span>
-                  </p>
-                ) : stat.value !== null ? (
-                  <p className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">
-                    {typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}
-                  </p>
-                ) : (
-                  <p className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">
-                    ...
-                  </p>
-                )}
+                <p className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">
+                  {typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}
+                </p>
                 <p className="text-sm text-zinc-600 dark:text-zinc-400">{stat.label}</p>
               </div>
             ))}
