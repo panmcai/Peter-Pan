@@ -67,6 +67,27 @@ function setCachedData(data: AIEventsData) {
   };
 }
 
+// 带超时的 fetch 函数
+async function fetchWithTimeout(url: string, options: RequestInit = {}, timeout = 30000): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error(`请求超时（${timeout}ms）`);
+    }
+    throw error;
+  }
+}
+
 // 使用智谱AI生成AI新闻
 async function fetchAINews(): Promise<NewsItem[]> {
   console.log('[AI Events] 使用智谱AI生成AI新闻');
@@ -95,7 +116,7 @@ async function fetchAINews(): Promise<NewsItem[]> {
 
 注意：只返回JSON数组，不要有其他内容。`;
 
-    const response = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
+    const response = await fetchWithTimeout('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -116,7 +137,7 @@ async function fetchAINews(): Promise<NewsItem[]> {
         temperature: 0.7,
         max_tokens: 8000,
       }),
-    });
+    }, 60000); // 智谱AI API 超时 60 秒
 
     if (!response.ok) {
       console.error('[AI Events] 智谱AI API 调用失败:', response.status);
@@ -280,14 +301,14 @@ async function fetchGitHubRepos(): Promise<{
 
   try {
     // 获取星标最高的 AI 相关仓库
-    const response = await fetch(
+    const response = await fetchWithTimeout(
       'https://api.github.com/search/repositories?q=topic:artificial-intelligence+topic:machine-learning&sort=stars&order=desc&per_page=10',
       {
         headers: {
           'Accept': 'application/vnd.github.v3+json',
         },
-        next: { revalidate: 3600 }, // 缓存 1 小时
-      }
+      },
+      15000 // GitHub API 超时 15 秒
     );
 
     if (!response.ok) {
@@ -443,16 +464,96 @@ async function fetchAllData(forceRefresh = false): Promise<AIEventsData> {
 
   console.log('[AI Events] 开始获取数据...');
 
-  // 并行获取新闻和 GitHub 数据
-  const [news, { topRepos, trendingRepos }] = await Promise.all([
+  // 使用 Promise.allSettled 确保即使一个 API 失败，另一个也能成功
+  const [newsResult, reposResult] = await Promise.allSettled([
     fetchAINews(),
     fetchGitHubRepos(),
   ]);
 
+  // 处理新闻数据
+  let news: NewsItem[] = [];
+  if (newsResult.status === 'fulfilled') {
+    news = newsResult.value;
+  } else {
+    console.error('[AI Events] 获取新闻失败:', newsResult.reason);
+    news = getFallbackNews();
+  }
+
+  // 处理 GitHub 数据
+  let githubData: { topRepos: GitHubRepo[]; trendingRepos: GitHubRepo[] } = {
+    topRepos: [],
+    trendingRepos: [],
+  };
+  if (reposResult.status === 'fulfilled') {
+    githubData = reposResult.value;
+  } else {
+    console.error('[AI Events] 获取 GitHub 数据失败:', reposResult.reason);
+    // GitHub 失败时，返回模拟数据
+    const mockRepos: GitHubRepo[] = [
+      {
+        id: 1,
+        name: 'pytorch/pytorch',
+        description: 'Tensors and Dynamic neural networks in Python with strong GPU acceleration',
+        stars: 78000,
+        starsGrowth: 2500,
+        language: 'Python',
+        url: 'https://github.com/pytorch/pytorch',
+        owner: 'pytorch',
+      },
+      {
+        id: 2,
+        name: 'tensorflow/tensorflow',
+        description: 'An Open Source Machine Learning Framework for Everyone',
+        stars: 182000,
+        starsGrowth: 2100,
+        language: 'C++',
+        url: 'https://github.com/tensorflow/tensorflow',
+        owner: 'tensorflow',
+      },
+      {
+        id: 3,
+        name: 'facebookresearch/llama',
+        description: 'Introducing LLaMA: A foundational, 65-billion-parameter large language model',
+        stars: 45000,
+        starsGrowth: 1800,
+        language: 'Python',
+        url: 'https://github.com/facebookresearch/llama',
+        owner: 'facebookresearch',
+      },
+      {
+        id: 4,
+        name: 'openai/gym',
+        description: 'A toolkit for developing and comparing reinforcement learning algorithms',
+        stars: 33000,
+        starsGrowth: 1500,
+        language: 'Python',
+        url: 'https://github.com/openai/gym',
+        owner: 'openai',
+      },
+      {
+        id: 5,
+        name: 'huggingface/transformers',
+        description: 'Transformers: State-of-the-art Machine Learning for Pytorch, TensorFlow, and JAX',
+        stars: 125000,
+        starsGrowth: 2200,
+        language: 'Python',
+        url: 'https://github.com/huggingface/transformers',
+        owner: 'huggingface',
+      },
+    ];
+    githubData = {
+      topRepos: mockRepos,
+      trendingRepos: mockRepos.slice(0, 5).map((repo, index) => ({
+        ...repo,
+        starsGrowth: Math.floor(Math.random() * 5000) + 1000 + (4 - index) * 1000,
+      })),
+    };
+  }
+
   const data: AIEventsData = {
     news,
-    topRepos,
-    trendingRepos,
+    topRepos: githubData.topRepos,
+    trendingRepos: githubData.trendingRepos,
     lastUpdated: new Date().toISOString(),
   };
 
