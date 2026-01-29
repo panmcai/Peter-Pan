@@ -79,7 +79,7 @@ async function fetchAINews(): Promise<NewsItem[]> {
 
   try {
     const prompt = `请生成今天（${new Date().toLocaleDateString('zh-CN')}）的AI领域新闻，要求：
-1. 生成25条最新的AI相关新闻
+1. 生成30条最新的AI相关新闻
 2. 每条新闻包含：标题（简洁）、摘要（100-200字）、来源（知名科技媒体）、分类（大模型、AI应用、开源模型、AI硬件、自动驾驶等）
 3. 确保新闻内容真实、有代表性
 4. 按照以下JSON格式返回：
@@ -150,7 +150,7 @@ async function fetchAINews(): Promise<NewsItem[]> {
     }
 
     // 转换为标准格式
-    const news: NewsItem[] = newsData.slice(0, 25).map((item, index) => {
+    const news: NewsItem[] = newsData.slice(0, 30).map((item, index) => {
       // 根据新闻类型选择不同的搜索平台
       let newsUrl: string;
       const encodedTitle = encodeURIComponent(item.title);
