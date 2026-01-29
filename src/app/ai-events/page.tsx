@@ -138,6 +138,14 @@ export default function AIEvents() {
 
   if (!data) return null;
 
+  // 计算今天的新闻数量
+  const todayNewsCount = data.news.filter(item => {
+    const publishDate = new Date(item.publishedAt);
+    const today = new Date();
+    const diffHours = Math.abs(today.getTime() - publishDate.getTime()) / (1000 * 60 * 60);
+    return diffHours <= 24;
+  }).length;
+
   const topNews = data.news.slice(0, 5);
   const remainingNews = data.news.slice(5);
 
@@ -258,6 +266,11 @@ export default function AIEvents() {
               <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 flex items-center gap-2">
                 <Newspaper className="text-blue-600" />
                 更多新闻
+                {todayNewsCount > 0 && (
+                  <span className="text-sm font-normal text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-full">
+                    {todayNewsCount} 条今日更新
+                  </span>
+                )}
               </h2>
               <div className="flex items-center gap-3">
                 <span className="text-sm text-zinc-600 dark:text-zinc-400">
@@ -268,7 +281,7 @@ export default function AIEvents() {
                     onClick={() => setIsNewsExpanded(!isNewsExpanded)}
                     className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors"
                   >
-                    {isNewsExpanded ? '收起' : `展开 (${remainingNews.length - 9}+)`}
+                    {isNewsExpanded ? '收起' : `展开全部 ${remainingNews.length} 条`}
                   </button>
                 )}
               </div>
