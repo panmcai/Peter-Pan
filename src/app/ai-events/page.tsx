@@ -318,20 +318,20 @@ export default function AIEvents() {
               </h2>
               <div className="flex items-center gap-3">
                 <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                  共 {Math.min(15, data.news.length)} 条
+                  共 {Math.min(30, data.news.length)} 条
                 </span>
                 {data.news.length > 3 && (
                   <button
                     onClick={() => setIsNewsExpanded(!isNewsExpanded)}
                     className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors"
                   >
-                    {isNewsExpanded ? '收起' : `展开全部 ${Math.min(15, data.news.length)} 条`}
+                    {isNewsExpanded ? '收起' : `展开全部 ${Math.min(30, data.news.length)} 条`}
                   </button>
                 )}
               </div>
             </div>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {data.news.slice(0, isNewsExpanded ? 15 : 3).map((news, index) => (
+              {data.news.slice(0, isNewsExpanded ? 30 : 3).map((news, index) => (
                 <a
                   key={news.id}
                   href={news.url || '#'}
@@ -392,7 +392,7 @@ export default function AIEvents() {
                     </>
                   ) : (
                     <>
-                      <span>展开全部 {Math.min(15, data.news.length)} 条</span>
+                      <span>展开全部 {Math.min(30, data.news.length)} 条</span>
                       <ChevronRight size={16} className="transform -rotate-90" />
                     </>
                   )}
@@ -513,7 +513,7 @@ export default function AIEvents() {
                     </>
                   ) : (
                     <>
-                      <span>展开全部 {Math.min(15, data.news.length)} 条</span>
+                      <span>展开全部 {Math.min(30, data.news.length)} 条</span>
                       <ChevronRight size={16} className="transform -rotate-90" />
                     </>
                   )}
