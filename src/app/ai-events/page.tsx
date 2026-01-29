@@ -185,10 +185,11 @@ export default function AIEvents() {
           </div>
         </div>
 
-        {/* 轮播图 - Top5 新闻 */}
+        {/* 轮播图 - 精选新闻（参考网易云音乐风格） */}
         {topNews.length > 0 && (
-          <section className="mb-12">
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-purple-600 shadow-2xl" style={{ minHeight: '400px' }}>
+          <section className="mb-8">
+            <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-blue-600 to-purple-600 shadow-lg" style={{ height: '200px' }}>
+              {/* 主内容区 */}
               {topNews.map((news, index) => (
                 <div
                   key={news.id}
@@ -196,34 +197,48 @@ export default function AIEvents() {
                     index === currentSlide ? 'opacity-100' : 'opacity-0'
                   }`}
                 >
-                  <div className="container mx-auto px-8 py-16">
-                    <div className="max-w-3xl">
-                      <div className="inline-flex items-center gap-2 px-3 py-1 mb-4 rounded-full bg-white/20 text-white text-sm">
-                        <Newspaper size={14} />
-                        {news.category}
+                  <div className="h-full flex items-center">
+                    <div className="container mx-auto px-6">
+                      <div className="flex items-center gap-6">
+                        {/* 缩略图 */}
+                        <div className="hidden sm:block w-32 h-32 rounded-lg overflow-hidden flex-shrink-0 bg-white/10">
+                          <img
+                            src={news.imageUrl}
+                            alt={news.title}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        {/* 内容 */}
+                        <div className="flex-1 min-w-0">
+                          <div className="inline-flex items-center gap-2 px-2 py-1 mb-2 rounded-full bg-white/20 text-white text-xs">
+                            <Newspaper size={12} />
+                            {news.category}
+                          </div>
+                          <h2 className="text-xl md:text-2xl font-bold text-white mb-2 line-clamp-1">
+                            {news.title}
+                          </h2>
+                          <p className="text-sm text-white/80 line-clamp-1">
+                            {news.summary}
+                          </p>
+                          <div className="flex items-center gap-3 mt-2 text-xs text-white/60">
+                            <span>{news.source}</span>
+                            <span>•</span>
+                            <span>{new Date(news.publishedAt).toLocaleDateString('zh-CN')}</span>
+                          </div>
+                        </div>
+                        {/* 阅读按钮 */}
+                        {news.url && (
+                          <a
+                            href={news.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hidden md:flex items-center gap-2 px-4 py-2 bg-white text-blue-600 rounded-lg hover:bg-white/90 transition-colors text-sm font-medium flex-shrink-0"
+                          >
+                            阅读更多
+                            <ExternalLink size={14} />
+                          </a>
+                        )}
                       </div>
-                      <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-                        {news.title}
-                      </h2>
-                      <p className="text-lg text-white/90 mb-6">
-                        {news.summary}
-                      </p>
-                      <div className="flex items-center gap-4 text-sm text-white/80">
-                        <span>{news.source}</span>
-                        <span>•</span>
-                        <span>{new Date(news.publishedAt).toLocaleDateString('zh-CN')}</span>
-                      </div>
-                      {news.url && (
-                        <a
-                          href={news.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 mt-6 px-6 py-3 bg-white text-blue-600 rounded-lg hover:bg-white/90 transition-colors"
-                        >
-                          阅读更多
-                          <ExternalLink size={16} />
-                        </a>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -234,44 +249,67 @@ export default function AIEvents() {
                 <>
                   <button
                     onClick={prevSlide}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors backdrop-blur-sm"
                   >
-                    <ChevronLeft size={24} />
+                    <ChevronLeft size={20} />
                   </button>
                   <button
                     onClick={nextSlide}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors backdrop-blur-sm"
                   >
-                    <ChevronRight size={24} />
+                    <ChevronRight size={20} />
                   </button>
                 </>
               )}
 
-              {/* 轮播图指示器 */}
-              <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2">
+              {/* 轮播图指示器 - 圆点 */}
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
                 {topNews.map((_, index) => (
                   <button
                     key={index}
                     onClick={() => setCurrentSlide(index)}
-                    className={`w-3 h-3 rounded-full transition-all ${
+                    className={`h-1.5 rounded-full transition-all ${
                       index === currentSlide
-                        ? 'bg-white w-8'
-                        : 'bg-white/50 hover:bg-white/70'
+                        ? 'bg-white w-6'
+                        : 'bg-white/40 hover:bg-white/60 w-1.5'
                     }`}
                   />
                 ))}
               </div>
             </div>
+
+            {/* 缩略图预览条 */}
+            {topNews.length > 1 && (
+              <div className="flex gap-3 mt-4 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-zinc-300 dark:scrollbar-thumb-zinc-600 scrollbar-track-transparent">
+                {topNews.map((news, index) => (
+                  <button
+                    key={news.id}
+                    onClick={() => setCurrentSlide(index)}
+                    className={`flex-shrink-0 w-24 rounded-lg overflow-hidden border-2 transition-all ${
+                      index === currentSlide
+                        ? 'border-blue-600 shadow-lg'
+                        : 'border-transparent hover:border-zinc-300 dark:hover:border-zinc-600'
+                    }`}
+                  >
+                    <img
+                      src={news.imageUrl}
+                      alt={news.title}
+                      className="w-full h-14 object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </section>
         )}
 
-        {/* 新闻列表 */}
-        {remainingNews.length > 0 && (
+        {/* 新闻列表 - 全部新闻 */}
+        {data.news.length > 0 && (
           <section className="mb-12">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 flex items-center gap-2">
                 <Newspaper className="text-blue-600" />
-                更多新闻
+                全部新闻
                 {todayNewsCount > 0 && (
                   <span className="text-sm font-normal text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-full">
                     {todayNewsCount} 条今日更新
@@ -280,20 +318,12 @@ export default function AIEvents() {
               </h2>
               <div className="flex items-center gap-3">
                 <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                  共 {remainingNews.length} 条
+                  共 {data.news.length} 条
                 </span>
-                {remainingNews.length > 9 && (
-                  <button
-                    onClick={() => setIsNewsExpanded(!isNewsExpanded)}
-                    className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors"
-                  >
-                    {isNewsExpanded ? '收起' : `展开全部 ${remainingNews.length} 条`}
-                  </button>
-                )}
               </div>
             </div>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {remainingNews.slice(0, isNewsExpanded ? remainingNews.length : 9).map((news) => (
+              {data.news.map((news, index) => (
                 <a
                   key={news.id}
                   href={news.url || '#'}
@@ -320,6 +350,11 @@ export default function AIEvents() {
                       <span className="text-xs text-zinc-600 dark:text-zinc-400">
                         {news.source}
                       </span>
+                      {index < 5 && (
+                        <span className="px-2 py-1 text-xs font-medium bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 rounded-full">
+                          Top {index + 1}
+                        </span>
+                      )}
                     </div>
                     <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-50 mb-2 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                       {news.title}
@@ -335,30 +370,8 @@ export default function AIEvents() {
                 </a>
               ))}
             </div>
-            {/* 底部展开/收起按钮 */}
-            {remainingNews.length > 9 && (
-              <div className="mt-6 text-center">
-                <button
-                  onClick={() => setIsNewsExpanded(!isNewsExpanded)}
-                  className="inline-flex items-center gap-2 px-6 py-2.5 bg-white dark:bg-zinc-900 border-2 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-full hover:border-blue-500 dark:hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition-all font-medium"
-                >
-                  {isNewsExpanded ? (
-                    <>
-                      <span>收起</span>
-                      <ChevronRight size={16} className="transform rotate-90" />
-                    </>
-                  ) : (
-                    <>
-                      <span>查看更多 ({remainingNews.length - 9} 条)</span>
-                      <ChevronRight size={16} />
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
           </section>
         )}
-
         {/* GitHub 热门仓库 */}
         <section className="mb-12">
           <div className="flex items-center justify-between mb-6">
