@@ -303,7 +303,7 @@ export default function AIEvents() {
           </section>
         )}
 
-        {/* 新闻列表 - 热门新闻 Top 15 */}
+        {/* 新闻列表 - 热门新闻 */}
         {data.news.length > 0 && (
           <section className="mb-12">
             <div className="flex items-center justify-between mb-6">
@@ -318,12 +318,20 @@ export default function AIEvents() {
               </h2>
               <div className="flex items-center gap-3">
                 <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                  共 15 条
+                  共 {Math.min(15, data.news.length)} 条
                 </span>
+                {data.news.length > 3 && (
+                  <button
+                    onClick={() => setIsNewsExpanded(!isNewsExpanded)}
+                    className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors"
+                  >
+                    {isNewsExpanded ? '收起' : `展开全部 ${Math.min(15, data.news.length)} 条`}
+                  </button>
+                )}
               </div>
             </div>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {data.news.slice(0, 15).map((news, index) => (
+              {data.news.slice(0, isNewsExpanded ? 15 : 3).map((news, index) => (
                 <a
                   key={news.id}
                   href={news.url || '#'}
@@ -370,6 +378,27 @@ export default function AIEvents() {
                 </a>
               ))}
             </div>
+            {/* 底部展开/收起按钮 */}
+            {data.news.length > 3 && (
+              <div className="mt-6 text-center">
+                <button
+                  onClick={() => setIsNewsExpanded(!isNewsExpanded)}
+                  className="inline-flex items-center gap-2 px-6 py-2.5 bg-white dark:bg-zinc-900 border-2 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-full hover:border-blue-500 dark:hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition-all font-medium"
+                >
+                  {isNewsExpanded ? (
+                    <>
+                      <span>收起</span>
+                      <ChevronRight size={16} className="transform rotate-90" />
+                    </>
+                  ) : (
+                    <>
+                      <span>展开全部 {Math.min(15, data.news.length)} 条</span>
+                      <ChevronRight size={16} className="transform -rotate-90" />
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
           </section>
         )}
         {/* GitHub 热门仓库 */}
@@ -470,6 +499,27 @@ export default function AIEvents() {
                 </a>
               ))}
             </div>
+            {/* 底部展开/收起按钮 */}
+            {data.news.length > 3 && (
+              <div className="mt-6 text-center">
+                <button
+                  onClick={() => setIsNewsExpanded(!isNewsExpanded)}
+                  className="inline-flex items-center gap-2 px-6 py-2.5 bg-white dark:bg-zinc-900 border-2 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-full hover:border-blue-500 dark:hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition-all font-medium"
+                >
+                  {isNewsExpanded ? (
+                    <>
+                      <span>收起</span>
+                      <ChevronRight size={16} className="transform rotate-90" />
+                    </>
+                  ) : (
+                    <>
+                      <span>展开全部 {Math.min(15, data.news.length)} 条</span>
+                      <ChevronRight size={16} className="transform -rotate-90" />
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
           </section>
         )}
       </div>
