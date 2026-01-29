@@ -64,15 +64,24 @@ export default function AIEvents() {
         setLoading(true);
       }
 
-      const response = await fetch(`/api/ai-events?refresh=${forceRefresh}`, {
-        cache: 'no-store',
+      // 创建一个超时 Promise
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('请求超时（30秒）')), 30000);
       });
 
-      if (!response.ok) {
-        throw new Error('加载数据失败');
-      }
+      // 创建 fetch Promise
+      const fetchPromise = fetch(`/api/ai-events?refresh=${forceRefresh}`, {
+        cache: 'no-store',
+      }).then(async (response) => {
+        if (!response.ok) {
+          throw new Error(`服务器错误: ${response.status}`);
+        }
+        return response.json();
+      });
 
-      const result = await response.json();
+      // 使用 Promise.race 实现超时控制
+      const result = await Promise.race([fetchPromise, timeoutPromise]);
+
       console.log('[AI Events Page] 加载数据成功:', result);
       setData(result);
       setError(null);
