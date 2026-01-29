@@ -149,7 +149,7 @@ export default function ChatPage() {
   };
 
   const clearChat = () => {
-    const newMessages = [
+    const newMessages: Message[] = [
       {
         role: 'assistant',
         content: modelConfig
@@ -167,7 +167,7 @@ export default function ChatPage() {
   const handleConfigChange = (config: AIModelConfig) => {
     setModelConfig(config);
     // 清空消息，显示配置成功提示
-    const newMessages = [
+    const newMessages: Message[] = [
       {
         role: 'assistant',
         content: `✅ 已成功配置 ${config.name} (${config.models[0]})\n\n现在可以开始对话了！`,
