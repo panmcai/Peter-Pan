@@ -24,6 +24,8 @@ export default function ChatPage() {
   const [showConfig, setShowConfig] = useState(false);
   const [modelConfig, setModelConfig] = useState<AIModelConfig | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const initialMessageCountRef = useRef<number>(1); // 初始有1条欢迎消息
 
   // 从 localStorage 加载配置
   useEffect(() => {
@@ -31,6 +33,8 @@ export default function ChatPage() {
     if (saved) {
       setModelConfig(JSON.parse(saved));
     }
+    // 页面加载时滚动到顶部
+    window.scrollTo(0, 0);
   }, []);
 
   // 保存配置到 localStorage
@@ -40,9 +44,15 @@ export default function ChatPage() {
     }
   }, [modelConfig]);
 
-  // 自动滚动到底部
+  // 自动滚动到底部（只在有新消息时）
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // 只在消息数量大于初始数量时才滚动
+    if (messages.length > initialMessageCountRef.current) {
+      messagesContainerRef.current?.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior: 'smooth',
+      });
+    }
   };
 
   useEffect(() => {
@@ -139,7 +149,7 @@ export default function ChatPage() {
   };
 
   const clearChat = () => {
-    setMessages([
+    const newMessages = [
       {
         role: 'assistant',
         content: modelConfig
@@ -147,20 +157,26 @@ export default function ChatPage() {
           : '你好！我是 Peter·Pan 的 AI 助手。我可以帮助你回答问题、提供信息或者只是聊聊天。\n\n⚠️ 请先点击右上角的「设置」按钮配置大模型。\n\n💡 推荐使用 **智谱 AI** 的 **GLM-4-Flash** 模型，这是一款极速大模型，性能优秀，适合日常使用。',
         timestamp: new Date(),
       },
-    ]);
+    ];
+    setMessages(newMessages);
     setError(null);
+    // 更新初始消息计数
+    initialMessageCountRef.current = newMessages.length;
   };
 
   const handleConfigChange = (config: AIModelConfig) => {
     setModelConfig(config);
     // 清空消息，显示配置成功提示
-    setMessages([
+    const newMessages = [
       {
         role: 'assistant',
         content: `✅ 已成功配置 ${config.name} (${config.models[0]})\n\n现在可以开始对话了！`,
         timestamp: new Date(),
       },
-    ]);
+    ];
+    setMessages(newMessages);
+    // 更新初始消息计数
+    initialMessageCountRef.current = newMessages.length;
   };
 
   const formatTime = (date: Date) => {
@@ -245,7 +261,7 @@ export default function ChatPage() {
       </div>
 
       {/* 消息区域 */}
-      <div className="flex-1 overflow-y-auto">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto px-4 py-8">
           <div className="space-y-6">
             {messages.map((message, index) => (
