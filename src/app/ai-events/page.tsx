@@ -303,13 +303,13 @@ export default function AIEvents() {
           </section>
         )}
 
-        {/* 新闻列表 - 全部新闻 */}
+        {/* 新闻列表 - 热门新闻 Top 15 */}
         {data.news.length > 0 && (
           <section className="mb-12">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 flex items-center gap-2">
                 <Newspaper className="text-blue-600" />
-                全部新闻
+                热门新闻
                 {todayNewsCount > 0 && (
                   <span className="text-sm font-normal text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-full">
                     {todayNewsCount} 条今日更新
@@ -318,12 +318,12 @@ export default function AIEvents() {
               </h2>
               <div className="flex items-center gap-3">
                 <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                  共 {data.news.length} 条
+                  共 15 条
                 </span>
               </div>
             </div>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {data.news.map((news, index) => (
+              {data.news.slice(0, 15).map((news, index) => (
                 <a
                   key={news.id}
                   href={news.url || '#'}
