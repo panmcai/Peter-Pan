@@ -73,10 +73,11 @@ export default function AIEvents() {
       }
 
       const result = await response.json();
+      console.log('[AI Events Page] 加载数据成功:', result);
       setData(result);
       setError(null);
     } catch (err) {
-      console.error('加载数据失败:', err);
+      console.error('[AI Events Page] 加载数据失败:', err);
       setError(err instanceof Error ? err.message : '未知错误');
     } finally {
       setLoading(false);
@@ -136,7 +137,12 @@ export default function AIEvents() {
     );
   }
 
-  if (!data) return null;
+  if (!data || !data.news) {
+    console.log('[AI Events Page] 数据或新闻为空:', data);
+    return null;
+  }
+
+  console.log('[AI Events Page] 渲染页面，新闻数量:', data.news.length);
 
   // 计算今天的新闻数量
   const todayNewsCount = data.news.filter(item => {
@@ -182,7 +188,7 @@ export default function AIEvents() {
         {/* 轮播图 - Top5 新闻 */}
         {topNews.length > 0 && (
           <section className="mb-12">
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-purple-600 shadow-2xl">
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-purple-600 shadow-2xl" style={{ minHeight: '400px' }}>
               {topNews.map((news, index) => (
                 <div
                   key={news.id}
