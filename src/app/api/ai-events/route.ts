@@ -150,16 +150,42 @@ async function fetchAINews(): Promise<NewsItem[]> {
     }
 
     // 转换为标准格式
-    const news: NewsItem[] = newsData.slice(0, 25).map((item, index) => ({
-      id: `${Date.now()}-${index}`,
-      title: item.title || 'AI新闻',
-      summary: item.summary || '暂无摘要',
-      source: item.source || '智谱AI',
-      url: `https://www.google.com/search?q=${encodeURIComponent(item.title)}`,
-      publishedAt: new Date().toISOString(),
-      category: item.category || 'AI新闻',
-      imageUrl: getNewsImage(index),
-    }));
+    const news: NewsItem[] = newsData.slice(0, 25).map((item, index) => {
+      // 根据新闻类型选择不同的搜索平台
+      let newsUrl: string;
+      const encodedTitle = encodeURIComponent(item.title);
+
+      switch(item.category) {
+        case 'AI应用':
+        case '自动驾驶':
+          newsUrl = `https://36kr.com/search/articles/${encodedTitle}`;
+          break;
+        case 'AI硬件':
+        case '自动驾驶':
+          newsUrl = `https://www.leiphone.com/search?keyword=${encodedTitle}`;
+          break;
+        case '大模型':
+        case '开源模型':
+          newsUrl = `https://www.infoq.cn/search/${encodedTitle}`;
+          break;
+        case 'AI安全':
+          newsUrl = `https://www.freebuf.com/search?keyword=${encodedTitle}`;
+          break;
+        default:
+          newsUrl = `https://news.google.com/search?q=${encodedTitle}`;
+      }
+
+      return {
+        id: `${Date.now()}-${index}`,
+        title: item.title || 'AI新闻',
+        summary: item.summary || '暂无摘要',
+        source: item.source || '智谱AI',
+        url: newsUrl,
+        publishedAt: new Date().toISOString(),
+        category: item.category || 'AI新闻',
+        imageUrl: getNewsImage(index),
+      };
+    });
 
     console.log(`[AI Events] 成功从智谱AI获取 ${news.length} 条新闻`);
     return news;
@@ -179,7 +205,7 @@ function getFallbackNews(): NewsItem[] {
       title: 'AI 技术持续创新',
       summary: '人工智能领域持续涌现新的技术创新和应用场景。',
       source: 'AI News',
-      url: 'https://news.google.com/search?q=AI+news',
+      url: 'https://36kr.com/search/articles/AI技术创新',
       publishedAt: new Date().toISOString(),
       category: 'AI新闻',
       imageUrl: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&h=450&fit=crop',
@@ -189,7 +215,7 @@ function getFallbackNews(): NewsItem[] {
       title: '大模型技术突破',
       summary: '各大科技公司在大模型领域取得重要进展，性能不断提升。',
       source: 'Tech News',
-      url: 'https://news.google.com/search?q=LLM+news',
+      url: 'https://www.infoq.cn/search/大模型技术',
       publishedAt: new Date(Date.now() - 3600000).toISOString(),
       category: '大模型',
       imageUrl: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=800&h=450&fit=crop',
@@ -199,7 +225,7 @@ function getFallbackNews(): NewsItem[] {
       title: 'AI 应用场景扩展',
       summary: '人工智能在医疗、教育、金融等领域的应用不断拓展。',
       source: 'Industry Report',
-      url: 'https://news.google.com/search?q=AI+applications',
+      url: 'https://36kr.com/search/articles/AI应用',
       publishedAt: new Date(Date.now() - 7200000).toISOString(),
       category: 'AI应用',
       imageUrl: 'https://images.unsplash.com/photo-1676299081847-824916de030a?w=800&h=450&fit=crop',
@@ -209,7 +235,7 @@ function getFallbackNews(): NewsItem[] {
       title: '开源模型生态繁荣',
       summary: '开源大模型项目活跃，推动 AI 技术普及和发展。',
       source: 'Open Source',
-      url: 'https://news.google.com/search?q=open+source+AI',
+      url: 'https://www.infoq.cn/search/开源模型',
       publishedAt: new Date(Date.now() - 10800000).toISOString(),
       category: '开源模型',
       imageUrl: 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=800&h=450&fit=crop',
@@ -219,7 +245,7 @@ function getFallbackNews(): NewsItem[] {
       title: 'AI 安全与治理',
       summary: '国际社会关注 AI 安全问题，推动 AI 治理框架建设。',
       source: 'Policy Update',
-      url: 'https://news.google.com/search?q=AI+safety',
+      url: 'https://www.freebuf.com/search?keyword=AI安全',
       publishedAt: new Date(Date.now() - 14400000).toISOString(),
       category: 'AI安全',
       imageUrl: 'https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?w=800&h=450&fit=crop',
