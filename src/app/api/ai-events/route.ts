@@ -457,7 +457,7 @@ export async function GET(request: NextRequest) {
     console.error('[AI Events] API error，返回备用数据:', error);
 
     // 即使出错，也尝试获取 GitHub 仓库数据
-    let githubData = { topRepos: [], trendingRepos: [] };
+    let githubData: { topRepos: GitHubRepo[]; trendingRepos: GitHubRepo[] } = { topRepos: [], trendingRepos: [] };
     try {
       githubData = await fetchGitHubRepos();
     } catch (githubError) {
