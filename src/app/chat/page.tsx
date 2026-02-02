@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Loader2, Sparkles, Clock, Trash2, Settings, AlertCircle } from 'lucide-react';
 import ModelConfig, { AIModelConfig } from '@/components/ModelConfig';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface Message {
   role: 'user' | 'assistant' | 'system';
@@ -14,7 +16,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: '你好！我是 Peter·Pan 的 AI 助手。我可以帮助你回答问题、提供信息或者只是聊聊天。\n\n⚠️',
+      content: '你好！我是 Peter·Pan 的 AI 助手。我可以帮助你回答问题、提供信息或者只是聊聊天。\n\n⚠️ 请先点击右上角的「设置」按钮配置大模型。\n\n💡 推荐使用 **智谱 AI** 的 **GLM-4-Flash** 模型，这是一款极速大模型，性能优秀，适合日常使用。',
       timestamp: new Date(),
     },
   ]);
@@ -351,9 +353,52 @@ export default function ChatPage() {
                       : 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700'
                   }`}
                 >
-                  <p className="whitespace-pre-wrap leading-relaxed text-sm sm:text-base">
-                    {message.content}
-                  </p>
+                  <div className="leading-relaxed text-sm sm:text-base prose prose-sm dark:prose-invert max-w-none">
+                    {message.role === 'assistant' ? (
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          // 自定义样式
+                          p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
+                          h1: ({ children }) => <h1 className="text-xl font-bold mb-3">{children}</h1>,
+                          h2: ({ children }) => <h2 className="text-lg font-bold mb-2">{children}</h2>,
+                          h3: ({ children }) => <h3 className="text-base font-bold mb-2">{children}</h3>,
+                          ul: ({ children }) => <ul className="list-disc list-inside mb-3">{children}</ul>,
+                          ol: ({ children }) => <ol className="list-decimal list-inside mb-3">{children}</ol>,
+                          li: ({ children }) => <li className="mb-1">{children}</li>,
+                          code: ({ className, children, ...props }: any) => {
+                            const isInline = !className;
+                            return isInline ? (
+                              <code className="bg-zinc-100 dark:bg-zinc-700 px-1.5 py-0.5 rounded text-xs font-mono" {...props}>
+                                {children}
+                              </code>
+                            ) : (
+                              <code className="block bg-zinc-100 dark:bg-zinc-700 px-3 py-2 rounded-lg text-xs font-mono overflow-x-auto" {...props}>
+                                {children}
+                              </code>
+                            );
+                          },
+                          pre: ({ children }) => <pre className="bg-zinc-100 dark:bg-zinc-700 p-3 rounded-lg overflow-x-auto mb-3">{children}</pre>,
+                          blockquote: ({ children }) => (
+                            <blockquote className="border-l-4 border-zinc-300 dark:border-zinc-600 pl-3 italic mb-3">
+                              {children}
+                            </blockquote>
+                          ),
+                          a: ({ href, children }) => (
+                            <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600 underline">
+                              {children}
+                            </a>
+                          ),
+                          strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+                          em: ({ children }) => <em className="italic">{children}</em>,
+                        }}
+                      >
+                        {message.content}
+                      </ReactMarkdown>
+                    ) : (
+                      <p className="whitespace-pre-wrap">{message.content}</p>
+                    )}
+                  </div>
                   {message.timestamp && (
                     <div
                       className={`flex items-center gap-1 mt-2 text-xs ${
