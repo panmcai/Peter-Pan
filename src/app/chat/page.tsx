@@ -391,50 +391,50 @@ export default function ChatPage() {
                       : 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700'
                   }`}
                 >
-                  <div className="leading-relaxed text-sm sm:text-base prose prose-sm dark:prose-invert prose-headings:font-bold prose-p:mb-3 prose-p:last:mb-0 prose-ul:list-disc prose-ol:list-decimal prose-li:mb-1 max-w-none">
+                  <div className="leading-relaxed text-sm sm:text-base text-zinc-900 dark:text-zinc-100 max-w-none">
                     {message.role === 'assistant' ? (
                       <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
                         components={{
                           // 自定义样式
-                          p: ({ children }) => <p className="mb-3 last:mb-0 break-words">{children}</p>,
-                          h1: ({ children }) => <h1 className="text-xl font-bold mb-3 break-words">{children}</h1>,
-                          h2: ({ children }) => <h2 className="text-lg font-bold mb-2 break-words">{children}</h2>,
-                          h3: ({ children }) => <h3 className="text-base font-bold mb-2 break-words">{children}</h3>,
-                          ul: ({ children }) => <ul className="list-disc list-inside mb-3 break-words">{children}</ul>,
-                          ol: ({ children }) => <ol className="list-decimal list-inside mb-3 break-words">{children}</ol>,
-                          li: ({ children }) => <li className="mb-1 break-words">{children}</li>,
+                          p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
+                          h1: ({ children }) => <h1 className="text-xl font-bold mb-3">{children}</h1>,
+                          h2: ({ children }) => <h2 className="text-lg font-bold mb-2">{children}</h2>,
+                          h3: ({ children }) => <h3 className="text-base font-bold mb-2">{children}</h3>,
+                          ul: ({ children }) => <ul className="list-disc list-inside mb-3">{children}</ul>,
+                          ol: ({ children }) => <ol className="list-decimal list-inside mb-3">{children}</ol>,
+                          li: ({ children }) => <li className="mb-1">{children}</li>,
                           code: ({ className, children, ...props }: any) => {
                             const isInline = !className;
                             return isInline ? (
-                              <code className="bg-zinc-100 dark:bg-zinc-700 px-1.5 py-0.5 rounded text-xs font-mono break-all" {...props}>
+                              <code className="bg-zinc-100 dark:bg-zinc-700 px-1.5 py-0.5 rounded text-xs font-mono" {...props}>
                                 {children}
                               </code>
                             ) : (
-                              <code className="block bg-zinc-100 dark:bg-zinc-700 px-3 py-2 rounded-lg text-xs font-mono overflow-x-auto break-all" {...props}>
+                              <code className="block bg-zinc-100 dark:bg-zinc-700 px-3 py-2 rounded-lg text-xs font-mono overflow-x-auto" {...props}>
                                 {children}
                               </code>
                             );
                           },
-                          pre: ({ children }) => <pre className="bg-zinc-100 dark:bg-zinc-700 p-3 rounded-lg overflow-x-auto mb-3 break-all">{children}</pre>,
+                          pre: ({ children }) => <pre className="bg-zinc-100 dark:bg-zinc-700 p-3 rounded-lg overflow-x-auto mb-3">{children}</pre>,
                           blockquote: ({ children }) => (
-                            <blockquote className="border-l-4 border-zinc-300 dark:border-zinc-600 pl-3 italic mb-3 break-words">
+                            <blockquote className="border-l-4 border-zinc-300 dark:border-zinc-600 pl-3 italic mb-3">
                               {children}
                             </blockquote>
                           ),
                           a: ({ href, children }) => (
-                            <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600 underline break-all">
+                            <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600 underline">
                               {children}
                             </a>
                           ),
-                          strong: ({ children }) => <strong className="font-bold break-words">{children}</strong>,
-                          em: ({ children }) => <em className="italic break-words">{children}</em>,
+                          strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+                          em: ({ children }) => <em className="italic">{children}</em>,
                         }}
                       >
                         {message.content}
                       </ReactMarkdown>
                     ) : (
-                      <p className="whitespace-pre-wrap break-words">{message.content}</p>
+                      <p className="whitespace-pre-wrap">{message.content}</p>
                     )}
                   </div>
                   {message.timestamp && (
