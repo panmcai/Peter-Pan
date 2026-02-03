@@ -101,13 +101,14 @@ export default function ChatPage() {
       }
       setModelConfig(config);
     } else {
-      // 设置默认配置：智谱 AI GLM-4.7-Flash
+      // 设置默认配置：智谱 AI GLM-4.7-Flash（使用环境变量）
       setModelConfig({
         name: '智谱 AI',
         provider: 'zhipu',
-        apiKey: 'd99d77d6f1db49c79a91fd763d2575fd.j5tqQpCiag1FLiwz',
+        apiKey: '', // API KEY 将从后端环境变量读取
         baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
         models: ['glm-4.7-flash'],
+        enabled: true,
       });
     }
 
