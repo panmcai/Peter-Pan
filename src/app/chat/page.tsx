@@ -387,7 +387,7 @@ export default function ChatPage() {
                 <div
                   className={`w-full max-w-full rounded-2xl px-5 py-4 shadow-sm ${
                     message.role === 'user'
-                      ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-blue-600/20'
+                      ? 'bg-gradient-to-br from-sky-300 to-sky-400 text-sky-900 shadow-sky-300/20'
                       : 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700'
                   }`}
                 >
@@ -441,7 +441,7 @@ export default function ChatPage() {
                     <div
                       className={`flex items-center gap-1 mt-2 text-xs ${
                         message.role === 'user'
-                          ? 'text-blue-100'
+                          ? 'text-sky-800'
                           : 'text-zinc-400 dark:text-zinc-500'
                       }`}
                     >
@@ -451,7 +451,7 @@ export default function ChatPage() {
                   )}
                 </div>
                 {message.role === 'user' && (
-                  <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-zinc-600 dark:bg-zinc-700 flex items-center justify-center shadow-lg">
+                  <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-sky-500 flex items-center justify-center shadow-lg">
                     <User className="w-6 h-6 text-white" />
                   </div>
                 )}
