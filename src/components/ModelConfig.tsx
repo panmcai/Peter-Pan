@@ -26,7 +26,7 @@ const MODEL_PROVIDERS = [
     name: '智谱 AI',
     icon: '🤖',
     baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
-    models: ['glm-4-flash', 'glm-z1-flash', 'glm-4', 'glm-4-plus', 'glm-4-air', 'glm-4v'],
+    models: ['glm-4.7-flash', 'GLM-4.6V-Flash', 'glm-4-flash', 'glm-z1-flash', 'glm-4', 'glm-4-plus', 'glm-4-air', 'glm-4v', 'CogView-3-Flash', 'CogVideoX-Flash'],
     apiKeyPlaceholder: 'your_zhipuai_api_key',
     docUrl: 'https://open.bigmodel.cn/',
   },
