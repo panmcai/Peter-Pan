@@ -94,6 +94,15 @@ export default function ChatPage() {
     const saved = localStorage.getItem('current-model-config');
     if (saved) {
       setModelConfig(JSON.parse(saved));
+    } else {
+      // 设置默认配置：智谱 AI GLM-4-Flash
+      setModelConfig({
+        name: '智谱 AI',
+        provider: 'zhipu',
+        apiKey: 'd99d77d6f1db49c79a91fd763d2575fd.j5tqQpCiag1FLiwz',
+        baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+        models: ['glm-4-flash'],
+      });
     }
 
     // 加载聊天记录
@@ -387,7 +396,7 @@ export default function ChatPage() {
                 <div
                   className={`w-full max-w-full rounded-2xl px-5 py-4 shadow-sm ${
                     message.role === 'user'
-                      ? 'bg-gradient-to-br from-sky-300 to-sky-400 text-sky-900 shadow-sky-300/20'
+                      ? 'bg-gradient-to-br from-sky-100 to-sky-200 text-sky-950 shadow-sky-200/20'
                       : 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700'
                   }`}
                 >
