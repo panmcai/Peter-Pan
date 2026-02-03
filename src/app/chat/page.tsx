@@ -16,7 +16,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: '你好！我是 Peter·Pan 的 AI 助手。我可以帮助你回答问题、提供信息或者只是聊聊天。\n\n💡 你可以通过右上角的「设置」按钮配置自己的大模型，默认由 GLM-4-Flash 模型为你提供服务。\n\n',
+      content: '你好！我是 Peter·Pan 的 AI 助手。我可以帮助你回答问题、提供信息或者只是聊聊天。\n\n💡 你可以通过右上角的「设置」按钮配置自己的大模型，默认由 GLM-4-Flash 模型为你提供服务。',
       timestamp: new Date(),
     },
   ]);
@@ -318,7 +318,7 @@ export default function ChatPage() {
     <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-blue-50/30 to-purple-50/30 dark:from-zinc-950 dark:via-blue-950/20 dark:to-purple-950/20">
       {/* 顶部导航 */}
       <div className="border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 py-4">
+        <div className="max-w-5xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
@@ -372,7 +372,7 @@ export default function ChatPage() {
 
       {/* 消息区域 */}
       <div ref={messagesContainerRef} className="flex-1 overflow-y-auto">
-        <div className="max-w-6xl mx-auto px-4 py-8">
+        <div className="max-w-5xl mx-auto px-4 py-8">
           <div className="space-y-6">
             {messages.map((message, index) => (
               <div
@@ -385,25 +385,25 @@ export default function ChatPage() {
                   </div>
                 )}
                 <div
-                  className={`w-full rounded-2xl px-5 py-4 shadow-sm ${
+                  className={`w-full max-w-full rounded-2xl px-5 py-4 shadow-sm ${
                     message.role === 'user'
                       ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-blue-600/20'
                       : 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700'
                   }`}
                 >
-                  <div className="leading-relaxed text-sm sm:text-base prose prose-sm dark:prose-invert prose-headings:font-bold prose-p:mb-3 prose-p:last:mb-0 prose-ul:list-disc prose-ol:list-decimal prose-li:mb-1">
+                  <div className="leading-relaxed text-sm sm:text-base prose prose-sm dark:prose-invert prose-headings:font-bold prose-p:mb-3 prose-p:last:mb-0 prose-ul:list-disc prose-ol:list-decimal prose-li:mb-1 max-w-none">
                     {message.role === 'assistant' ? (
                       <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
                         components={{
                           // 自定义样式
-                          p: ({ children }) => <p className="mb-3 last:mb-0 break-words overflow-wrap-anywhere">{children}</p>,
+                          p: ({ children }) => <p className="mb-3 last:mb-0 break-words">{children}</p>,
                           h1: ({ children }) => <h1 className="text-xl font-bold mb-3 break-words">{children}</h1>,
                           h2: ({ children }) => <h2 className="text-lg font-bold mb-2 break-words">{children}</h2>,
                           h3: ({ children }) => <h3 className="text-base font-bold mb-2 break-words">{children}</h3>,
                           ul: ({ children }) => <ul className="list-disc list-inside mb-3 break-words">{children}</ul>,
                           ol: ({ children }) => <ol className="list-decimal list-inside mb-3 break-words">{children}</ol>,
-                          li: ({ children }) => <li className="mb-1 break-words overflow-wrap-anywhere">{children}</li>,
+                          li: ({ children }) => <li className="mb-1 break-words">{children}</li>,
                           code: ({ className, children, ...props }: any) => {
                             const isInline = !className;
                             return isInline ? (
@@ -434,7 +434,7 @@ export default function ChatPage() {
                         {message.content}
                       </ReactMarkdown>
                     ) : (
-                      <p className="whitespace-pre-wrap break-words overflow-wrap-anywhere">{message.content}</p>
+                      <p className="whitespace-pre-wrap break-words">{message.content}</p>
                     )}
                   </div>
                   {message.timestamp && (
@@ -480,7 +480,7 @@ export default function ChatPage() {
 
       {/* 输入区域 */}
       <div className="border-t border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm">
-        <div className="max-w-6xl mx-auto px-4 py-6">
+        <div className="max-w-5xl mx-auto px-4 py-6">
           {/* 整体输入框容器 */}
           <div className="relative border border-zinc-200 dark:border-zinc-700 rounded-2xl bg-white dark:bg-zinc-800 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all">
             {/* 输入框 */}
