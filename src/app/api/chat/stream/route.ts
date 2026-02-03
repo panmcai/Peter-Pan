@@ -103,7 +103,13 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    if (!provider || !apiKey || !model) {
+    // 如果没有提供 apiKey，且是智谱 AI，则使用环境变量
+    let finalApiKey = apiKey;
+    if (!finalApiKey && provider === 'zhipu') {
+      finalApiKey = process.env.ZHIPUAI_API_KEY || '';
+    }
+
+    if (!provider || !finalApiKey || !model) {
       return new Response(JSON.stringify({ error: '缺少必需参数' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
@@ -125,7 +131,7 @@ export async function POST(request: NextRequest) {
         try {
           const baseUrl = customBaseUrl || providerConfig.baseUrl;
           const apiUrl = `${baseUrl}/chat/completions`;
-          const headers = providerConfig.headersBuilder(apiKey);
+          const headers = providerConfig.headersBuilder(finalApiKey);
 
           // 构建消息内容
           let systemPrompt = '你是一个有用的AI助手。';
