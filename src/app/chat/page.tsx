@@ -403,7 +403,7 @@ export default function ChatPage() {
                 <div
                   className={`w-full max-w-full rounded-2xl px-5 py-4 shadow-sm ${
                     message.role === 'user'
-                      ? 'bg-gradient-to-br from-sky-100 to-sky-200 text-sky-950 shadow-sky-200/20'
+                      ? 'bg-gradient-to-br from-sky-50 to-sky-100 text-sky-950 shadow-sky-100/20'
                       : 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700'
                   }`}
                 >
