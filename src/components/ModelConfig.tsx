@@ -173,6 +173,10 @@ export default function ModelConfig({ isOpen, onClose, onConfigChange, currentCo
   const hasApiKey = !!apiKey.trim();
   const savedConfig = savedConfigs[selectedProvider];
 
+  // 判断是否可以使用默认API Key
+  const canUseDefaultKey = selectedProvider === 'zhipu';
+  const isDefaultKeyMode = !hasApiKey && canUseDefaultKey;
+
   if (!isOpen) return null;
 
   return (
@@ -317,6 +321,11 @@ export default function ModelConfig({ isOpen, onClose, onConfigChange, currentCo
                 <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
                   <Key className="w-4 h-4" />
                   API Key
+                  {canUseDefaultKey && (
+                    <span className="text-xs text-zinc-500 dark:text-zinc-400 font-normal">
+                      （可选）
+                    </span>
+                  )}
                 </label>
                 <input
                   type="password"
@@ -325,6 +334,11 @@ export default function ModelConfig({ isOpen, onClose, onConfigChange, currentCo
                   placeholder={provider.apiKeyPlaceholder}
                   className="w-full px-4 py-3 border border-zinc-200 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
                 />
+                {canUseDefaultKey && (
+                  <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+                    💡 留空将使用服务器默认的 {provider.name} API Key（由环境变量配置）
+                  </p>
+                )}
               </div>
 
               {/* 自定义 Base URL */}
@@ -371,7 +385,7 @@ export default function ModelConfig({ isOpen, onClose, onConfigChange, currentCo
           </button>
           <button
             onClick={handleSave}
-            disabled={!hasApiKey}
+            disabled={!hasApiKey && !canUseDefaultKey}
             className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-xl transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {savedConfig ? <Check className="w-4 h-4" /> : <Key className="w-4 h-4" />}
