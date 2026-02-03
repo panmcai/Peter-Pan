@@ -16,7 +16,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: '你好！我是 Peter·Pan 的 AI 助手。我可以帮助你回答问题、提供信息或者只是聊聊天。\n\n💡 你可以通过右上角的「设置」按钮配置自己的大模型，默认由 GLM-4-Flash 模型为你提供服务。',
+      content: '你好！我是 Peter·Pan 的 AI 助手。我可以帮助你回答问题、提供信息或者只是聊聊天。\n\n💡 你可以通过右上角的「设置」按钮配置自己的大模型，默认由 GLM-4.7-Flash 模型为你提供服务。',
       timestamp: new Date(),
     },
   ]);
@@ -93,15 +93,21 @@ export default function ChatPage() {
   useEffect(() => {
     const saved = localStorage.getItem('current-model-config');
     if (saved) {
-      setModelConfig(JSON.parse(saved));
+      const config = JSON.parse(saved);
+      // 如果旧配置是 glm-4-flash，自动升级到 glm-4.7-flash
+      if (config.models && config.models[0] === 'glm-4-flash') {
+        config.models[0] = 'glm-4.7-flash';
+        localStorage.setItem('current-model-config', JSON.stringify(config));
+      }
+      setModelConfig(config);
     } else {
-      // 设置默认配置：智谱 AI GLM-4-Flash
+      // 设置默认配置：智谱 AI GLM-4.7-Flash
       setModelConfig({
         name: '智谱 AI',
         provider: 'zhipu',
         apiKey: 'd99d77d6f1db49c79a91fd763d2575fd.j5tqQpCiag1FLiwz',
         baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
-        models: ['glm-4-flash'],
+        models: ['glm-4.7-flash'],
       });
     }
 
