@@ -16,7 +16,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: '你好！我是 Peter·Pan 的 AI 助手。我可以帮助你回答问题、提供信息或者只是聊聊天。\n\n',
+      content: '你好！我是 Peter·Pan 的 AI 助手。我可以帮助你回答问题、提供信息或者只是聊聊天。\n\n💡 你可以通过右上角的「设置」按钮配置自己的大模型，默认由 GLM-4-Flash 模型为你提供服务。\n\n',
       timestamp: new Date(),
     },
   ]);
@@ -25,6 +25,8 @@ export default function ChatPage() {
   const [error, setError] = useState<string | null>(null);
   const [showConfig, setShowConfig] = useState(false);
   const [modelConfig, setModelConfig] = useState<AIModelConfig | null>(null);
+  const [deepThink, setDeepThink] = useState(false);
+  const [webSearch, setWebSearch] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const initialMessageCountRef = useRef<number>(1); // 初始有1条欢迎消息
@@ -152,7 +154,17 @@ export default function ChatPage() {
     setError(null);
 
     try {
-      const response = await fetch('/api/chat', {
+      // 创建一个空的助手消息，用于流式更新
+      const assistantMessage: Message = {
+        role: 'assistant',
+        content: '',
+        timestamp: new Date(),
+      };
+      const assistantIndex = messages.length + 1;
+      setMessages((prev) => [...prev, assistantMessage]);
+
+      // 使用流式 API
+      const response = await fetch('/api/chat/stream', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -163,36 +175,62 @@ export default function ChatPage() {
           provider: modelConfig.provider,
           apiKey: modelConfig.apiKey,
           baseUrl: modelConfig.baseUrl,
+          deepThink,
+          webSearch,
         }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || '请求失败');
+        throw new Error(`请求失败: ${response.status}`);
       }
 
-      const data = await response.json();
+      // 处理流式响应
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
 
-      // 添加 AI 回复
-      let assistantContent = '';
-      if (data.choices && data.choices[0] && data.choices[0].message) {
-        assistantContent = data.choices[0].message.content;
-      } else if (data.content && data.content[0]) {
-        // Anthropic 格式
-        assistantContent = data.content[0].text;
+      if (!reader) {
+        throw new Error('无法获取响应流');
       }
 
-      if (!assistantContent) {
-        throw new Error('未收到有效回复');
+      let buffer = '';
+      let content = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            if (data === '[DONE]') continue;
+
+            try {
+              const parsed = JSON.parse(data);
+
+              if (parsed.type === 'content') {
+                content += parsed.content;
+                // 实时更新消息内容
+                setMessages((prev) => {
+                  const newMessages = [...prev];
+                  const lastMessage = newMessages[assistantIndex];
+                  if (lastMessage) {
+                    lastMessage.content = content;
+                  }
+                  return newMessages;
+                });
+              } else if (parsed.type === 'error') {
+                throw new Error(parsed.error);
+              }
+            } catch (e) {
+              console.error('解析流数据失败:', e);
+            }
+          }
+        }
       }
-
-      const assistantMessage: Message = {
-        role: 'assistant',
-        content: assistantContent,
-        timestamp: new Date(),
-      };
-
-      setMessages((prev) => [...prev, assistantMessage]);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '发送失败';
       setError(errorMessage);
@@ -280,7 +318,7 @@ export default function ChatPage() {
     <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-blue-50/30 to-purple-50/30 dark:from-zinc-950 dark:via-blue-950/20 dark:to-purple-950/20">
       {/* 顶部导航 */}
       <div className="border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-4 py-4">
+        <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
@@ -334,7 +372,7 @@ export default function ChatPage() {
 
       {/* 消息区域 */}
       <div ref={messagesContainerRef} className="flex-1 overflow-y-auto">
-        <div className="max-w-5xl mx-auto px-4 py-8">
+        <div className="max-w-6xl mx-auto px-4 py-8">
           <div className="space-y-6">
             {messages.map((message, index) => (
               <div
@@ -347,56 +385,56 @@ export default function ChatPage() {
                   </div>
                 )}
                 <div
-                  className={`max-w-[85%] rounded-2xl px-5 py-4 shadow-sm ${
+                  className={`w-full rounded-2xl px-5 py-4 shadow-sm ${
                     message.role === 'user'
                       ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-blue-600/20'
                       : 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700'
                   }`}
                 >
-                  <div className="leading-relaxed text-sm sm:text-base prose prose-sm dark:prose-invert max-w-none">
+                  <div className="leading-relaxed text-sm sm:text-base prose prose-sm dark:prose-invert prose-headings:font-bold prose-p:mb-3 prose-p:last:mb-0 prose-ul:list-disc prose-ol:list-decimal prose-li:mb-1">
                     {message.role === 'assistant' ? (
                       <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
                         components={{
                           // 自定义样式
-                          p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
-                          h1: ({ children }) => <h1 className="text-xl font-bold mb-3">{children}</h1>,
-                          h2: ({ children }) => <h2 className="text-lg font-bold mb-2">{children}</h2>,
-                          h3: ({ children }) => <h3 className="text-base font-bold mb-2">{children}</h3>,
-                          ul: ({ children }) => <ul className="list-disc list-inside mb-3">{children}</ul>,
-                          ol: ({ children }) => <ol className="list-decimal list-inside mb-3">{children}</ol>,
-                          li: ({ children }) => <li className="mb-1">{children}</li>,
+                          p: ({ children }) => <p className="mb-3 last:mb-0 break-words overflow-wrap-anywhere">{children}</p>,
+                          h1: ({ children }) => <h1 className="text-xl font-bold mb-3 break-words">{children}</h1>,
+                          h2: ({ children }) => <h2 className="text-lg font-bold mb-2 break-words">{children}</h2>,
+                          h3: ({ children }) => <h3 className="text-base font-bold mb-2 break-words">{children}</h3>,
+                          ul: ({ children }) => <ul className="list-disc list-inside mb-3 break-words">{children}</ul>,
+                          ol: ({ children }) => <ol className="list-decimal list-inside mb-3 break-words">{children}</ol>,
+                          li: ({ children }) => <li className="mb-1 break-words overflow-wrap-anywhere">{children}</li>,
                           code: ({ className, children, ...props }: any) => {
                             const isInline = !className;
                             return isInline ? (
-                              <code className="bg-zinc-100 dark:bg-zinc-700 px-1.5 py-0.5 rounded text-xs font-mono" {...props}>
+                              <code className="bg-zinc-100 dark:bg-zinc-700 px-1.5 py-0.5 rounded text-xs font-mono break-all" {...props}>
                                 {children}
                               </code>
                             ) : (
-                              <code className="block bg-zinc-100 dark:bg-zinc-700 px-3 py-2 rounded-lg text-xs font-mono overflow-x-auto" {...props}>
+                              <code className="block bg-zinc-100 dark:bg-zinc-700 px-3 py-2 rounded-lg text-xs font-mono overflow-x-auto break-all" {...props}>
                                 {children}
                               </code>
                             );
                           },
-                          pre: ({ children }) => <pre className="bg-zinc-100 dark:bg-zinc-700 p-3 rounded-lg overflow-x-auto mb-3">{children}</pre>,
+                          pre: ({ children }) => <pre className="bg-zinc-100 dark:bg-zinc-700 p-3 rounded-lg overflow-x-auto mb-3 break-all">{children}</pre>,
                           blockquote: ({ children }) => (
-                            <blockquote className="border-l-4 border-zinc-300 dark:border-zinc-600 pl-3 italic mb-3">
+                            <blockquote className="border-l-4 border-zinc-300 dark:border-zinc-600 pl-3 italic mb-3 break-words">
                               {children}
                             </blockquote>
                           ),
                           a: ({ href, children }) => (
-                            <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600 underline">
+                            <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600 underline break-all">
                               {children}
                             </a>
                           ),
-                          strong: ({ children }) => <strong className="font-bold">{children}</strong>,
-                          em: ({ children }) => <em className="italic">{children}</em>,
+                          strong: ({ children }) => <strong className="font-bold break-words">{children}</strong>,
+                          em: ({ children }) => <em className="italic break-words">{children}</em>,
                         }}
                       >
                         {message.content}
                       </ReactMarkdown>
                     ) : (
-                      <p className="whitespace-pre-wrap">{message.content}</p>
+                      <p className="whitespace-pre-wrap break-words overflow-wrap-anywhere">{message.content}</p>
                     )}
                   </div>
                   {message.timestamp && (
@@ -442,46 +480,77 @@ export default function ChatPage() {
 
       {/* 输入区域 */}
       <div className="border-t border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm">
-        <div className="max-w-5xl mx-auto px-4 py-6">
-          <div className="relative">
+        <div className="max-w-6xl mx-auto px-4 py-6">
+          {/* 整体输入框容器 */}
+          <div className="relative border border-zinc-200 dark:border-zinc-700 rounded-2xl bg-white dark:bg-zinc-800 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all">
+            {/* 输入框 */}
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder={modelConfig ? "输入消息... (Enter 发送，Shift + Enter 换行)" : "请先配置模型，推荐使用智谱 AI GLM-4-Flash..."}
+              placeholder="输入消息，按 Enter 发送消息，Shift + Enter 换行"
               rows={1}
-              className="w-full px-6 py-4 pr-16 border border-zinc-200 dark:border-zinc-700 rounded-2xl bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none shadow-sm transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-500 text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full px-6 py-4 pb-16 border-0 bg-transparent text-zinc-900 dark:text-zinc-100 focus:outline-none resize-none placeholder:text-zinc-400 dark:placeholder:text-zinc-500 text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={loading || !modelConfig}
               style={{
-                minHeight: '60px',
-                maxHeight: '200px',
+                minHeight: '120px',
+                maxHeight: '300px',
               }}
               onKeyDown={(e) => {
                 // 自动调整高度
                 const target = e.target as HTMLTextAreaElement;
                 target.style.height = 'auto';
-                target.style.height = Math.min(target.scrollHeight, 200) + 'px';
+                target.style.height = Math.min(target.scrollHeight, 300) + 'px';
               }}
             />
-            <button
-              onClick={sendMessage}
-              disabled={loading || !input.trim() || !modelConfig}
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-blue-600/20 hover:shadow-lg hover:shadow-blue-600/30 flex items-center justify-center"
-              title="发送消息"
-            >
-              {loading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <Send className="w-5 h-5" />
-              )}
-            </button>
-          </div>
-          <div className="flex items-center justify-between mt-3 text-xs text-zinc-500 dark:text-zinc-400">
-            <p>按 Enter 发送消息，Shift + Enter 换行</p>
-            <p className="flex items-center gap-1">
-              <Sparkles size={12} />
-              {modelConfig ? `${modelConfig.name} (${modelConfig.models[0]})` : '请配置模型'}
-            </p>
+
+            {/* 底部按钮栏 */}
+            <div className="absolute bottom-0 left-0 right-0 px-4 py-3 flex items-center justify-between">
+              {/* 左侧功能按钮 */}
+              <div className="flex items-center gap-2">
+                {/* 深度思考按钮 */}
+                <button
+                  onClick={() => setDeepThink(!deepThink)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    deepThink
+                      ? 'bg-purple-600 text-white shadow-md'
+                      : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-600'
+                  }`}
+                  title="启用深度思考，AI 会展示详细的推理过程"
+                >
+                  <Sparkles size={16} />
+                  <span className="hidden sm:inline">深度思考</span>
+                </button>
+
+                {/* 联网搜索按钮 */}
+                <button
+                  onClick={() => setWebSearch(!webSearch)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    webSearch
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-600'
+                  }`}
+                  title="启用联网搜索，AI 会先搜索最新信息"
+                >
+                  <AlertCircle size={16} />
+                  <span className="hidden sm:inline">联网搜索</span>
+                </button>
+              </div>
+
+              {/* 右侧发送按钮 */}
+              <button
+                onClick={sendMessage}
+                disabled={loading || !input.trim() || !modelConfig}
+                className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-blue-600/20 hover:shadow-lg hover:shadow-blue-600/30 flex items-center justify-center"
+                title="发送消息"
+              >
+                {loading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Send className="w-5 h-5" />
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>
