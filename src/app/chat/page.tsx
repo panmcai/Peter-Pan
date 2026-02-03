@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader2, Sparkles, Clock, Trash2, Settings, AlertCircle } from 'lucide-react';
+import { Send, Bot, User, Loader2, Sparkles, Clock, Trash2, Settings, AlertCircle, Download, Image as ImageIcon, ExternalLink } from 'lucide-react';
 import ModelConfig, { AIModelConfig } from '@/components/ModelConfig';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -9,6 +9,8 @@ import remarkGfm from 'remark-gfm';
 interface Message {
   role: 'user' | 'assistant' | 'system';
   content: string;
+  type?: 'text' | 'image';
+  imageUrl?: string;
   timestamp?: Date;
 }
 
@@ -16,7 +18,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: '你好！我是 Peter·Pan 的 AI 助手。我可以帮助你回答问题、提供信息或者只是聊聊天。\n\n💡 你可以通过右上角的「设置」按钮配置自己的大模型，默认由 GLM-4.7-Flash 模型为你提供服务。',
+      content: '你好！我是 Peter·Pan 的 AI 助手。我可以帮助你回答问题、提供信息或者只是聊聊天。\n\n💡 你可以通过右上角的「设置」按钮配置自己的大模型，默认由 GLM-4.7-Flash 模型为你提供服务。\n\n🎨 **文生图功能**：选择「CogView-3-Flash」模型，我可以根据你的描述生成图片！',
       timestamp: new Date(),
     },
   ]);
@@ -170,7 +172,7 @@ export default function ChatPage() {
     setError(null);
 
     try {
-      // 创建一个空的助手消息，用于流式更新
+      // 创建一个空的助手消息，用于更新
       const assistantMessage: Message = {
         role: 'assistant',
         content: '',
@@ -179,70 +181,109 @@ export default function ChatPage() {
       const assistantIndex = messages.length + 1;
       setMessages((prev) => [...prev, assistantMessage]);
 
-      // 使用流式 API
-      const response = await fetch('/api/chat/stream', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: userMessage.content,
-          model: modelConfig.models[0],
-          provider: modelConfig.provider,
-          apiKey: modelConfig.apiKey,
-          baseUrl: modelConfig.baseUrl,
-          deepThink,
-          webSearch,
-        }),
-      });
+      // 检测是否为文生图模型
+      const imageModels = ['cogview-3-flash', 'CogView-3-Flash', 'cogview', 'CogView', 'cogview-3', 'CogView-3'];
+      const isImageModel = imageModels.some(imgModel => modelConfig.models[0].toLowerCase().includes(imgModel.toLowerCase()));
 
-      if (!response.ok) {
-        throw new Error(`请求失败: ${response.status}`);
-      }
+      if (isImageModel) {
+        // 文生图模式
+        const response = await fetch('/api/chat/image', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            prompt: userMessage.content,
+            model: modelConfig.models[0],
+            apiKey: modelConfig.apiKey,
+            baseUrl: modelConfig.baseUrl,
+          }),
+        });
 
-      // 处理流式响应
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `请求失败: ${response.status}`);
+        }
 
-      if (!reader) {
-        throw new Error('无法获取响应流');
-      }
+        const data = await response.json();
 
-      let buffer = '';
-      let content = '';
+        // 更新消息为图片类型
+        setMessages((prev) => {
+          const newMessages = [...prev];
+          const lastMessage = newMessages[assistantIndex];
+          if (lastMessage) {
+            lastMessage.type = 'image';
+            lastMessage.imageUrl = data.imageUrl;
+            lastMessage.content = `✅ 已为您生成图片！\n\n**描述**：${data.prompt}`;
+          }
+          return newMessages;
+        });
+      } else {
+        // 文本聊天模式：使用流式 API
+        const response = await fetch('/api/chat/stream', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message: userMessage.content,
+            model: modelConfig.models[0],
+            provider: modelConfig.provider,
+            apiKey: modelConfig.apiKey,
+            baseUrl: modelConfig.baseUrl,
+            deepThink,
+            webSearch,
+          }),
+        });
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+        if (!response.ok) {
+          throw new Error(`请求失败: ${response.status}`);
+        }
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
+        // 处理流式响应
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
 
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-            if (data === '[DONE]') continue;
+        if (!reader) {
+          throw new Error('无法获取响应流');
+        }
 
-            try {
-              const parsed = JSON.parse(data);
+        let buffer = '';
+        let content = '';
 
-              if (parsed.type === 'content') {
-                content += parsed.content;
-                // 实时更新消息内容
-                setMessages((prev) => {
-                  const newMessages = [...prev];
-                  const lastMessage = newMessages[assistantIndex];
-                  if (lastMessage) {
-                    lastMessage.content = content;
-                  }
-                  return newMessages;
-                });
-              } else if (parsed.type === 'error') {
-                throw new Error(parsed.error);
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+              if (data === '[DONE]') continue;
+
+              try {
+                const parsed = JSON.parse(data);
+
+                if (parsed.type === 'content') {
+                  content += parsed.content;
+                  // 实时更新消息内容
+                  setMessages((prev) => {
+                    const newMessages = [...prev];
+                    const lastMessage = newMessages[assistantIndex];
+                    if (lastMessage) {
+                      lastMessage.content = content;
+                    }
+                    return newMessages;
+                  });
+                } else if (parsed.type === 'error') {
+                  throw new Error(parsed.error);
+                }
+              } catch (e) {
+                console.error('解析流数据失败:', e);
               }
-            } catch (e) {
-              console.error('解析流数据失败:', e);
             }
           }
         }
@@ -330,6 +371,24 @@ export default function ChatPage() {
     return icons[provider] || '🤖';
   };
 
+  // 下载图片（处理跨域）
+  const downloadImage = async (imageUrl: string, filename: string = 'generated-image.png') => {
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename;
+      link.click();
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error('下载图片失败:', error);
+      // 降级方案：直接在新标签页打开
+      window.open(imageUrl, '_blank');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-blue-50/30 to-purple-50/30 dark:from-zinc-950 dark:via-blue-950/20 dark:to-purple-950/20">
       {/* 顶部导航 */}
@@ -408,7 +467,45 @@ export default function ChatPage() {
                   }`}
                 >
                   <div className="leading-relaxed text-sm sm:text-base text-zinc-900 dark:text-zinc-100 max-w-none">
-                    {message.role === 'assistant' ? (
+                    {message.role === 'assistant' && message.type === 'image' && message.imageUrl ? (
+                      <div className="space-y-4">
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          components={{
+                            p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
+                            strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+                          }}
+                        >
+                          {message.content}
+                        </ReactMarkdown>
+                        <div className="mt-4">
+                          <img
+                            src={message.imageUrl}
+                            alt="Generated image"
+                            className="w-full rounded-lg shadow-lg cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() => message.imageUrl && window.open(message.imageUrl, '_blank')}
+                          />
+                          <div className="flex items-center gap-2 mt-3">
+                            <button
+                              onClick={() => message.imageUrl && window.open(message.imageUrl, '_blank')}
+                              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                              disabled={!message.imageUrl}
+                            >
+                              <ExternalLink size={16} />
+                              <span>在新标签页打开</span>
+                            </button>
+                            <button
+                              onClick={() => message.imageUrl && downloadImage(message.imageUrl, `generated-image-${Date.now()}.png`)}
+                              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                              disabled={!message.imageUrl}
+                            >
+                              <Download size={16} />
+                              <span>下载图片</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : message.role === 'assistant' ? (
                       <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
                         components={{
