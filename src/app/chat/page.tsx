@@ -481,6 +481,24 @@ export default function ChatPage() {
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
 
+    // 检查是否是 TTS>> 指令
+    if (input.trim().startsWith('TTS>>')) {
+      // 创建用户消息
+      const userMessage: Message = {
+        role: 'user',
+        content: input,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, userMessage]);
+      setInput('');
+
+      // 直接播放语音，不调用 API
+      setTimeout(() => {
+        playTTS(input, messages.length);
+      }, 100);
+      return;
+    }
+
     // 检查是否配置了模型
     if (!modelConfig) {
       setError('请先配置大模型 API Key');
@@ -1064,6 +1082,13 @@ export default function ChatPage() {
                 maxHeight: '300px',
               }}
               onKeyDown={(e) => {
+                // 处理 Enter 键发送消息
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  sendMessage();
+                  return;
+                }
+
                 // 自动调整高度
                 const target = e.target as HTMLTextAreaElement;
                 target.style.height = 'auto';
