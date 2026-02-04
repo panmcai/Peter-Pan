@@ -27,6 +27,7 @@ export default function TTSSettings({ isOpen, onClose, onSettingsChange, current
   const [isTestingVoice, setIsTestingVoice] = useState(false);
   const [showVoiceList, setShowVoiceList] = useState(false);
   const [showLangList, setShowLangList] = useState(false);
+  const [hasInitializedDefaults, setHasInitializedDefaults] = useState(false);
 
   // 从 localStorage 加载设置
   useEffect(() => {
@@ -46,12 +47,40 @@ export default function TTSSettings({ isOpen, onClose, onSettingsChange, current
         const voices = window.speechSynthesis.getVoices();
         console.log('[TTS] 获取到', voices.length, '个语音');
         setAvailableVoices(voices);
+
+        // 如果用户没有配置中文音色，自动选择 Xiaoxiao Online（仅初始化一次）
+        if (!hasInitializedDefaults && voices.length > 0) {
+          const hasChineseConfig = voiceSettings.some(v => v.lang === 'zh');
+          if (!hasChineseConfig) {
+            const xiaoxiaoOnline = voices.find(voice =>
+              voice.lang.includes('zh') &&
+              voice.name.toLowerCase().includes('xiaoxiao') &&
+              voice.name.toLowerCase().includes('online')
+            );
+
+            if (xiaoxiaoOnline) {
+              console.log('[TTS] 自动选择 Xiaoxiao Online 作为默认中文音色');
+              const newSettings = [
+                ...voiceSettings,
+                {
+                  lang: 'zh',
+                  voiceURI: xiaoxiaoOnline.voiceURI,
+                  voiceName: xiaoxiaoOnline.name,
+                }
+              ];
+              setVoiceSettings(newSettings);
+              // 自动保存到 localStorage
+              localStorage.setItem('tts-voice-settings', JSON.stringify({ voices: newSettings }));
+            }
+          }
+          setHasInitializedDefaults(true);
+        }
       };
 
       loadVoices();
       window.speechSynthesis.onvoiceschanged = loadVoices;
     }
-  }, []);
+  }, [voiceSettings, hasInitializedDefaults]);
 
   // 获取当前语言的语音设置
   const currentVoiceSetting = voiceSettings.find(v => v.lang === selectedLang);
@@ -209,9 +238,35 @@ export default function TTSSettings({ isOpen, onClose, onSettingsChange, current
 
   // 获取当前语言的语音列表
   const getCurrentLanguageVoices = () => {
-    return availableVoices
-      .filter(voice => voice.lang.startsWith(selectedLang))
-      .sort((a, b) => a.name.localeCompare(b.name));
+    const voices = availableVoices.filter(voice => voice.lang.startsWith(selectedLang));
+
+    // 如果是中文，按地区优先级排序：中国大陆 > 香港 > 台湾 > 其他
+    if (selectedLang === 'zh') {
+      const getRegionPriority = (lang: string) => {
+        const region = lang.split('-')[1]?.toUpperCase();
+        switch (region) {
+          case 'CN': return 1; // 中国大陆
+          case 'HK': return 2; // 香港
+          case 'TW': return 3; // 台湾
+          default: return 4;   // 其他
+        }
+      };
+
+      return voices.sort((a, b) => {
+        const priorityA = getRegionPriority(a.lang);
+        const priorityB = getRegionPriority(b.lang);
+
+        if (priorityA !== priorityB) {
+          return priorityA - priorityB;
+        }
+
+        // 同一地区按名称排序
+        return a.name.localeCompare(b.name);
+      });
+    }
+
+    // 其他语言按名称排序
+    return voices.sort((a, b) => a.name.localeCompare(b.name));
   };
 
   const currentLangVoices = getCurrentLanguageVoices();
