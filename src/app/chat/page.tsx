@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader2, Sparkles, Clock, Trash2, Settings, AlertCircle, Download, Image as ImageIcon, ExternalLink, Video as VideoIcon } from 'lucide-react';
+import { Send, Bot, User, Loader2, Sparkles, Clock, Trash2, Settings, AlertCircle, Download, Image as ImageIcon, ExternalLink, Video as VideoIcon, Square } from 'lucide-react';
 import ModelConfig, { AIModelConfig } from '@/components/ModelConfig';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -19,7 +19,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: '你好！我是 Peter·Pan 的 AI 助手。我可以帮助你回答问题、提供信息或者只是聊聊天。\n\n💡 你可以通过右上角的「设置」按钮配置自己的大模型，默认由 GLM-4.7-Flash 模型为你提供服务。\n\n🎨 **文生图功能**：选择「CogView-3-Flash」模型，我可以根据你的描述生成图片！\n\n🎬 **文生视频功能**：选择「CogVideoX-Flash」模型，我可以根据你的描述生成视频！',
+      content: '你好！我是 Peter·Pan 的 AI 助手。我可以帮助你回答问题、提供信息或者只是聊聊天。\n\n💡 你可以通过右上角的「设置」按钮配置自己的大模型，默认由 GLM-4.7-Flash 模型为你提供服务。\n\n🎨 **文生图功能**：选择「CogView-3-Flash」模型，我可以根据你的描述生成图片！\n\n🎬 **文生视频功能**：选择「CogVideoX-Flash」模型，我可以根据你的描述生成视频！生成的视频会包含同步的 AI 音效（语音、音效和背景音乐）。\n\n📝 **视频时长说明**：目前 CogVideoX-Flash 模型支持的视频时长约为 **6-10 秒**，不支持生成更长的视频。如果你需要更长的视频，建议分段生成或使用其他专业视频工具。\n\n🎵 **音频生成提示**：为了获得更好的音频效果，建议在描述中明确包含声音相关的提示，例如：\n- "一个人说：\'你好！\'"（人类对话）\n- "热闹的街道，汽车喇叭声、行人交谈声"（环境音效）\n- "轻柔的背景音乐，营造温馨氛围"（背景音乐）\n\n⚠️ **注意事项**：\n- 音频生成主要针对人类语音和环境音效，对动物叫声的支持有限\n- 视频时长受模型限制，一般为 6-10 秒',
       timestamp: new Date(),
     },
   ]);
@@ -33,6 +33,7 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const initialMessageCountRef = useRef<number>(1); // 初始有1条欢迎消息
+  const abortControllerRef = useRef<AbortController | null>(null); // 用于中断请求
 
   // 聊天记录缓存配置
   const CHAT_CACHE_KEY = 'chat_history';
@@ -150,6 +151,21 @@ export default function ChatPage() {
     saveChatHistory(messages);
   }, [messages]);
 
+  // 停止生成
+  const stopGeneration = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+      setLoading(false);
+      console.log('[Chat] 生成已停止');
+    }
+  };
+
+  // 处理输入变化
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value);
+  };
+
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
 
@@ -159,6 +175,10 @@ export default function ChatPage() {
       setShowConfig(true);
       return;
     }
+
+    // 创建 AbortController 用于中断请求
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
 
     const userMessage: Message = {
       role: 'user',
@@ -195,6 +215,7 @@ export default function ChatPage() {
           headers: {
             'Content-Type': 'application/json',
           },
+          signal: abortController.signal, // 添加 abort signal
           body: JSON.stringify({
             prompt: userMessage.content,
             model: modelConfig.models[0],
@@ -228,6 +249,7 @@ export default function ChatPage() {
           headers: {
             'Content-Type': 'application/json',
           },
+          signal: abortController.signal, // 添加 abort signal
           body: JSON.stringify({
             prompt: userMessage.content,
             model: modelConfig.models[0],
@@ -261,6 +283,7 @@ export default function ChatPage() {
           headers: {
             'Content-Type': 'application/json',
           },
+          signal: abortController.signal, // 添加 abort signal
           body: JSON.stringify({
             message: userMessage.content,
             model: modelConfig.models[0],
@@ -325,6 +348,12 @@ export default function ChatPage() {
         }
       }
     } catch (err) {
+      // 如果是用户主动中断请求，不显示错误
+      if (err instanceof Error && err.name === 'AbortError') {
+        console.log('[Chat] 请求已中断');
+        return;
+      }
+
       const errorMessage = err instanceof Error ? err.message : '发送失败';
       setError(errorMessage);
 
@@ -339,6 +368,7 @@ export default function ChatPage() {
       ]);
     } finally {
       setLoading(false);
+      abortControllerRef.current = null; // 清理 abort controller
     }
   };
 
@@ -689,7 +719,7 @@ export default function ChatPage() {
             {/* 输入框 */}
             <textarea
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={handleInputChange}
               onKeyPress={handleKeyPress}
               placeholder="输入消息，按 Enter 发送消息，Shift + Enter 换行"
               rows={1}
@@ -740,19 +770,25 @@ export default function ChatPage() {
                 </button>
               </div>
 
-              {/* 右侧发送按钮 */}
-              <button
-                onClick={sendMessage}
-                disabled={loading || !input.trim() || !modelConfig}
-                className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-blue-600/20 hover:shadow-lg hover:shadow-blue-600/30 flex items-center justify-center"
-                title="发送消息"
-              >
-                {loading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
+              {/* 右侧发送/停止按钮 */}
+              {loading ? (
+                <button
+                  onClick={stopGeneration}
+                  className="w-10 h-10 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white rounded-xl font-medium transition-all shadow-md shadow-red-600/20 hover:shadow-lg hover:shadow-red-600/30 flex items-center justify-center"
+                  title="停止生成"
+                >
+                  <Square className="w-4 h-4" />
+                </button>
+              ) : (
+                <button
+                  onClick={sendMessage}
+                  disabled={!input.trim() || !modelConfig}
+                  className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-blue-600/20 hover:shadow-lg hover:shadow-blue-600/30 flex items-center justify-center"
+                  title="发送消息"
+                >
                   <Send className="w-5 h-5" />
-                )}
-              </button>
+                </button>
+              )}
             </div>
           </div>
         </div>
