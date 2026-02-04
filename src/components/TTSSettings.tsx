@@ -48,55 +48,89 @@ export default function TTSSettings({ isOpen, onClose, onSettingsChange, current
         console.log('[TTS] 获取到', voices.length, '个语音');
         setAvailableVoices(voices);
 
-        // 如果用户没有配置中文音色，自动选择 Xiaoxiao Online（仅初始化一次）
+        // 如果用户没有配置中文音色，自动选择最佳音色（仅初始化一次）
         if (!hasInitializedDefaults && voices.length > 0) {
           const hasChineseConfig = voiceSettings.some(v => v.lang === 'zh');
           if (!hasChineseConfig) {
             console.log('[TTS] 开始查找默认中文音色...');
+            const zhVoices = voices.filter(v => v.lang.includes('zh'));
+            console.log('[TTS] 可用中文语音:', zhVoices.map(v => v.name).join(', '));
 
-            // 1. 尝试精确匹配 Xiaoxiao Online
-            let selectedVoice = voices.find(voice =>
-              voice.lang.includes('zh') &&
-              voice.name.toLowerCase().includes('xiaoxiao') &&
-              voice.name.toLowerCase().includes('online')
-            );
+            let selectedVoice: SpeechSynthesisVoice | undefined;
 
-            if (selectedVoice) {
-              console.log('[TTS] ✓ 找到 Xiaoxiao Online:', selectedVoice.name);
-            } else {
-              // 2. 尝试匹配 Xiaoxiao（不区分 Online）
-              selectedVoice = voices.find(voice =>
-                voice.lang.includes('zh') &&
-                voice.name.toLowerCase().includes('xiaoxiao')
+            // 1. 优先匹配 Online 语音（桌面端高质量）
+            const onlineVoiceNames = [
+              'xiaoxiao online', 'yaoyao online', 'yunyang online', 'yunxi online'
+            ];
+            for (const name of onlineVoiceNames) {
+              selectedVoice = zhVoices.find(v =>
+                v.name.toLowerCase().includes(name)
               );
-
               if (selectedVoice) {
-                console.log('[TTS] ✓ 找到 Xiaoxiao:', selectedVoice.name);
-              } else {
-                // 3. 尝试匹配 Online 语音
-                selectedVoice = voices.find(voice =>
-                  voice.lang.includes('zh') &&
-                  voice.name.toLowerCase().includes('online')
+                console.log('[TTS] ✓ 找到 Online 语音:', selectedVoice.name);
+                break;
+              }
+            }
+
+            // 2. 匹配 Neural 语音
+            if (!selectedVoice) {
+              const neuralVoiceNames = [
+                'xiaoxiaoneural', 'yaoyaoneural', 'yunyangneural', 'yunxineural',
+                'xiaoyineural', 'jianhaoneural', 'xiaochenneural', 'xiaomengneural'
+              ];
+              for (const name of neuralVoiceNames) {
+                selectedVoice = zhVoices.find(v =>
+                  v.name.toLowerCase().includes(name)
                 );
-
                 if (selectedVoice) {
-                  console.log('[TTS] ✓ 找到 Online 语音:', selectedVoice.name);
-                } else {
-                  // 4. 回退到 Neural 语音
-                  selectedVoice = voices.find(voice =>
-                    voice.lang.includes('zh') &&
-                    voice.name.toLowerCase().includes('neural')
-                  );
-
-                  if (selectedVoice) {
-                    console.log('[TTS] ✓ 找到 Neural 语音:', selectedVoice.name);
-                  } else {
-                    // 5. 使用第一个中文语音
-                    selectedVoice = voices.find(voice => voice.lang.includes('zh'));
-                    console.log('[TTS] ✓ 使用第一个中文语音:', selectedVoice?.name);
-                  }
+                  console.log('[TTS] ✓ 找到 Neural 语音:', selectedVoice.name);
+                  break;
                 }
               }
+            }
+
+            // 3. 匹配常见中文名称（手机端）
+            if (!selectedVoice) {
+              const mobileVoiceNames = [
+                '婷婷', '晓晓', '姚姚', '云扬', '云希', '晓伊', '建豪', '晓辰', '晓梦',
+                'xiao xiao', 'yao yao', 'yun yang', 'yun xi'
+              ];
+              for (const name of mobileVoiceNames) {
+                selectedVoice = zhVoices.find(v =>
+                  v.name.toLowerCase().includes(name.toLowerCase())
+                );
+                if (selectedVoice) {
+                  console.log('[TTS] ✓ 找到常见中文语音:', selectedVoice.name);
+                  break;
+                }
+              }
+            }
+
+            // 4. 按地区优先级选择
+            if (!selectedVoice) {
+              const getRegionPriority = (lang: string) => {
+                const region = lang.split('-')[1]?.toUpperCase();
+                switch (region) {
+                  case 'CN': return 1;
+                  case 'HK': return 2;
+                  case 'TW': return 3;
+                  default: return 4;
+                }
+              };
+
+              const sortedVoices = [...zhVoices].sort((a, b) => {
+                const priorityA = getRegionPriority(a.lang);
+                const priorityB = getRegionPriority(b.lang);
+
+                if (priorityA !== priorityB) {
+                  return priorityA - priorityB;
+                }
+
+                return a.name.localeCompare(b.name);
+              });
+
+              selectedVoice = sortedVoices[0];
+              console.log('[TTS] ✓ 按优先级选择语音:', selectedVoice?.name);
             }
 
             if (selectedVoice) {
@@ -339,8 +373,11 @@ export default function TTSSettings({ isOpen, onClose, onSettingsChange, current
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
           {/* 提示信息 */}
           <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-xl">
-            <p className="text-sm text-blue-900 dark:text-blue-100">
+            <p className="text-sm text-blue-900 dark:text-blue-100 leading-relaxed">
               💡 按语言配置语音音色。系统会根据消息内容自动选择对应语言的音色。共检测到 {availableVoices.length} 个可用语音。
+            </p>
+            <p className="text-xs text-blue-700 dark:text-blue-200 mt-2">
+              ℹ️ 不同设备支持的音色不同，桌面端（如 Edge 浏览器）提供「Xiaoxiao Online」等高质量云端音色，手机端则使用系统内置音色（如「婷婷」），系统会自动选择可用音色。
             </p>
           </div>
 
@@ -506,14 +543,21 @@ export default function TTSSettings({ isOpen, onClose, onSettingsChange, current
           {selectedLang === 'zh' && (
             <div className="p-4 bg-zinc-50 dark:bg-zinc-800 rounded-xl">
               <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-2">
-                常用中文 Neural 语音
+                常用中文语音
               </h3>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2">
+                不同设备支持的语音名称可能不同，以下为常见语音示例：
+              </p>
               <ul className="text-xs text-zinc-600 dark:text-zinc-400 space-y-1">
-                <li>• <strong>晓晓 (XiaoxiaoNeural)</strong> - 女声，温柔自然</li>
-                <li>• <strong>云扬 (YunyangNeural)</strong> - 男声，沉稳有力</li>
-                <li>• <strong>云希 (YunxiNeural)</strong> - 男声，年轻活力</li>
-                <li>• <strong>晓伊 (XiaoyiNeural)</strong> - 女声，甜美可爱</li>
-                <li>• <strong>建豪 (JianhaoNeural)</strong> - 男声，成熟稳重</li>
+                <li className="font-medium text-zinc-900 dark:text-zinc-100 mt-2">桌面端（Edge 浏览器）</li>
+                <li>• <strong>晓晓 Online</strong> - 女声，温柔自然（云端高质量）</li>
+                <li>• <strong>姚姚 Online</strong> - 女声，清晰明亮</li>
+                <li>• <strong>云扬 Online</strong> - 男声，沉稳有力</li>
+                <li>• <strong>晓晓 Neural</strong> - 女声，自然流畅</li>
+                <li className="font-medium text-zinc-900 dark:text-zinc-100 mt-2">手机端（iOS / Android）</li>
+                <li>• <strong>婷婷</strong> - 女声，柔和温婉</li>
+                <li>• <strong>晓晓</strong> - 女声，温柔自然</li>
+                <li>• <strong>云扬</strong> - 男声，沉稳有力</li>
               </ul>
             </div>
           )}
