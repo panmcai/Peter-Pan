@@ -42,6 +42,25 @@ export default function ChatPage() {
   const speechSynthesisRef = useRef<SpeechSynthesis | null>(typeof window !== 'undefined' ? window.speechSynthesis : null);
   const [showTTSSettings, setShowTTSSettings] = useState(false);
   const [ttsSettings, setTTSSettings] = useState<TTSSettingsType | undefined>();
+  const [voicesLoaded, setVoicesLoaded] = useState(false);
+
+  // 初始化语音列表
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      const loadVoices = () => {
+        const voices = window.speechSynthesis.getVoices();
+        if (voices.length > 0) {
+          console.log('[TTS] 语音列表加载完成，共', voices.length, '个语音');
+          setVoicesLoaded(true);
+        }
+      };
+
+      loadVoices();
+      window.speechSynthesis.onvoiceschanged = () => {
+        loadVoices();
+      };
+    }
+  }, []);
 
   // 聊天记录缓存配置
   const CHAT_CACHE_KEY = 'chat_history';
@@ -489,19 +508,51 @@ export default function ChatPage() {
 
     // 检查是否是 TTS>> 指令
     if (input.trim().startsWith('TTS>>')) {
+      console.log('[TTS] 检测到 TTS>> 指令');
+      console.log('[TTS] 当前 ttsSettings:', ttsSettings);
+      console.log('[TTS] 语音列表已加载:', voicesLoaded);
+      console.log('[TTS] 当前可用语音数量:', speechSynthesisRef.current?.getVoices()?.length || 0);
+
+      // 如果语音列表还没有加载完成，等待加载
+      if (!voicesLoaded || speechSynthesisRef.current?.getVoices().length === 0) {
+        console.log('[TTS] 语音列表未加载，等待中...');
+        // 等待语音列表加载
+        const checkVoices = setInterval(() => {
+          const voices = speechSynthesisRef.current?.getVoices();
+          if (voices && voices.length > 0) {
+            clearInterval(checkVoices);
+            setVoicesLoaded(true);
+            console.log('[TTS] 语音列表已加载，重新播放');
+            // 重新触发播放
+            setTimeout(() => {
+              sendMessage();
+            }, 100);
+          }
+        }, 100);
+        return;
+      }
+
       // 创建用户消息
       const userMessage: Message = {
         role: 'user',
         content: input,
         timestamp: new Date(),
       };
-      setMessages((prev) => [...prev, userMessage]);
-      setInput('');
 
-      // 直接播放语音，不调用 API
-      setTimeout(() => {
-        playTTS(input, messages.length);
-      }, 100);
+      // 添加消息后播放
+      setMessages((prev) => {
+        const newMessages = [...prev, userMessage];
+        const newIndex = newMessages.length - 1;
+        setInput('');
+
+        // 等待消息更新后再播放
+        setTimeout(() => {
+          console.log('[TTS] 开始播放 TTS>> 消息，index:', newIndex);
+          playTTS(input, newIndex);
+        }, 100);
+
+        return newMessages;
+      });
       return;
     }
 
