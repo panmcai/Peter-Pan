@@ -295,6 +295,9 @@ export default function ChatPage() {
       .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // 去除链接
       .replace(/!\[([^\]]*)\]\([^)]+\)/g, '') // 去除图片
       .replace(/TTS>>/g, '') // 去除 TTS 前缀
+      .replace(/[\u{1F300}-\u{1F9FF}]/gu, '') // 去除 emoji（包括各种辅助字符）
+      .replace(/[\u{2600}-\u{26FF}]/gu, '') // 去除更多符号和图标
+      .replace(/[\u{2700}-\u{27BF}]/gu, '') // 去除 Dingbats 符号
       .replace(/\n+/g, ' ') // 换行转为空格
       .trim();
 
@@ -404,6 +407,9 @@ export default function ChatPage() {
       .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
       .replace(/!\[([^\]]*)\]\([^)]+\)/g, '')
       .replace(/TTS>>/g, '') // 去除 TTS 前缀
+      .replace(/[\u{1F300}-\u{1F9FF}]/gu, '') // 去除 emoji（包括各种辅助字符）
+      .replace(/[\u{2600}-\u{26FF}]/gu, '') // 去除更多符号和图标
+      .replace(/[\u{2700}-\u{27BF}]/gu, '') // 去除 Dingbats 符号
       .replace(/\n+/g, ' ')
       .trim();
 
