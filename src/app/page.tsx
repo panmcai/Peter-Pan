@@ -350,15 +350,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="border-t border-zinc-200 bg-white px-4 py-12 dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="mx-auto max-w-6xl text-center">
-          <p className="text-zinc-600 dark:text-zinc-400">
-            © 2026 Peter·Pan. All rights reserved.
-          </p>
-        </div>
-      </footer>
     </div>
   );
 }
