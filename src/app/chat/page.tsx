@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader2, Sparkles, Clock, Trash2, Settings, AlertCircle, Download, Image as ImageIcon, ExternalLink } from 'lucide-react';
+import { Send, Bot, User, Loader2, Sparkles, Clock, Trash2, Settings, AlertCircle, Download, Image as ImageIcon, ExternalLink, Video as VideoIcon } from 'lucide-react';
 import ModelConfig, { AIModelConfig } from '@/components/ModelConfig';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -9,8 +9,9 @@ import remarkGfm from 'remark-gfm';
 interface Message {
   role: 'user' | 'assistant' | 'system';
   content: string;
-  type?: 'text' | 'image';
+  type?: 'text' | 'image' | 'video';
   imageUrl?: string;
+  videoUrl?: string;
   timestamp?: Date;
 }
 
@@ -18,7 +19,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: '你好！我是 Peter·Pan 的 AI 助手。我可以帮助你回答问题、提供信息或者只是聊聊天。\n\n💡 你可以通过右上角的「设置」按钮配置自己的大模型，默认由 GLM-4.7-Flash 模型为你提供服务。\n\n🎨 **文生图功能**：选择「CogView-3-Flash」模型，我可以根据你的描述生成图片！',
+      content: '你好！我是 Peter·Pan 的 AI 助手。我可以帮助你回答问题、提供信息或者只是聊聊天。\n\n💡 你可以通过右上角的「设置」按钮配置自己的大模型，默认由 GLM-4.7-Flash 模型为你提供服务。\n\n🎨 **文生图功能**：选择「CogView-3-Flash」模型，我可以根据你的描述生成图片！\n\n🎬 **文生视频功能**：选择「CogVideoX-Flash」模型，我可以根据你的描述生成视频！',
       timestamp: new Date(),
     },
   ]);
@@ -181,11 +182,46 @@ export default function ChatPage() {
       const assistantIndex = messages.length + 1;
       setMessages((prev) => [...prev, assistantMessage]);
 
-      // 检测是否为文生图模型
+      // 检测模型类型
       const imageModels = ['cogview-3-flash', 'CogView-3-Flash', 'cogview', 'CogView', 'cogview-3', 'CogView-3'];
+      const videoModels = ['cogvideox-flash', 'CogVideoX-Flash', 'cogvideox', 'CogVideoX', 'cogvideo', 'CogVideo'];
       const isImageModel = imageModels.some(imgModel => modelConfig.models[0].toLowerCase().includes(imgModel.toLowerCase()));
+      const isVideoModel = videoModels.some(vidModel => modelConfig.models[0].toLowerCase().includes(vidModel.toLowerCase()));
 
-      if (isImageModel) {
+      if (isVideoModel) {
+        // 文生视频模式
+        const response = await fetch('/api/chat/video', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            prompt: userMessage.content,
+            model: modelConfig.models[0],
+            apiKey: modelConfig.apiKey,
+            baseUrl: modelConfig.baseUrl,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `请求失败: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // 更新消息为视频类型
+        setMessages((prev) => {
+          const newMessages = [...prev];
+          const lastMessage = newMessages[assistantIndex];
+          if (lastMessage) {
+            lastMessage.type = 'video';
+            lastMessage.videoUrl = data.videoUrl;
+            lastMessage.content = `✅ 已为您生成视频！\n\n**描述**：${data.prompt}`;
+          }
+          return newMessages;
+        });
+      } else if (isImageModel) {
         // 文生图模式
         const response = await fetch('/api/chat/image', {
           method: 'POST',
@@ -389,6 +425,23 @@ export default function ChatPage() {
     }
   };
 
+  const downloadVideo = async (videoUrl: string, filename: string = 'generated-video.mp4') => {
+    try {
+      const response = await fetch(videoUrl);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename;
+      link.click();
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error('下载视频失败:', error);
+      // 降级方案：直接在新标签页打开
+      window.open(videoUrl, '_blank');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-blue-50/30 to-purple-50/30 dark:from-zinc-950 dark:via-blue-950/20 dark:to-purple-950/20">
       {/* 顶部导航 */}
@@ -467,7 +520,44 @@ export default function ChatPage() {
                   }`}
                 >
                   <div className="leading-relaxed text-sm sm:text-base text-zinc-900 dark:text-zinc-100 max-w-none">
-                    {message.role === 'assistant' && message.type === 'image' && message.imageUrl ? (
+                    {message.role === 'assistant' && message.type === 'video' && message.videoUrl ? (
+                      <div className="space-y-4">
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          components={{
+                            p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
+                            strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+                          }}
+                        >
+                          {message.content}
+                        </ReactMarkdown>
+                        <div className="mt-4">
+                          <video
+                            controls
+                            className="w-full rounded-lg shadow-lg"
+                            src={message.videoUrl}
+                          />
+                          <div className="flex items-center gap-2 mt-3">
+                            <button
+                              onClick={() => message.videoUrl && window.open(message.videoUrl, '_blank')}
+                              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                              disabled={!message.videoUrl}
+                            >
+                              <ExternalLink size={16} />
+                              <span>在新标签页打开</span>
+                            </button>
+                            <button
+                              onClick={() => message.videoUrl && downloadVideo(message.videoUrl, `generated-video-${Date.now()}.mp4`)}
+                              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                              disabled={!message.videoUrl}
+                            >
+                              <Download size={16} />
+                              <span>下载视频</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : message.role === 'assistant' && message.type === 'image' && message.imageUrl ? (
                       <div className="space-y-4">
                         <ReactMarkdown
                           remarkPlugins={[remarkGfm]}
