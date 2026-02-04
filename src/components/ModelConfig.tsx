@@ -26,6 +26,7 @@ const MODEL_PROVIDERS = [
     name: '智谱 AI',
     icon: '🤖',
     baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+    // 默认模型为 glm-4.7-flash
     models: ['glm-4.7-flash', 'GLM-4.6V-Flash', 'glm-4-flash', 'glm-z1-flash', 'glm-4', 'glm-4-plus', 'glm-4-air', 'glm-4v', 'CogView-3-Flash', 'CogVideoX-Flash'],
     apiKeyPlaceholder: 'your_zhipuai_api_key',
     docUrl: 'https://open.bigmodel.cn/',
@@ -98,7 +99,8 @@ const MODEL_PROVIDERS = [
 export default function ModelConfig({ isOpen, onClose, onConfigChange, currentConfig }: ModelConfigProps) {
   const [selectedProvider, setSelectedProvider] = useState<string>(currentConfig?.provider || 'zhipu');
   const zhipuProvider = MODEL_PROVIDERS.find(p => p.id === 'zhipu');
-  const defaultModel = zhipuProvider?.models[0] || 'glm-z1-flash';
+  // 默认模型为 glm-4.7-flash（智谱 AI 的第一个模型）
+  const defaultModel = zhipuProvider?.models[0] || 'glm-4.7-flash';
   const [selectedModel, setSelectedModel] = useState<string>(currentConfig?.models[0] || defaultModel);
   const [apiKey, setApiKey] = useState(currentConfig?.apiKey || '');
   const [customBaseUrl, setCustomBaseUrl] = useState(currentConfig?.baseUrl || '');
