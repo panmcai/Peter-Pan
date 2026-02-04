@@ -49,8 +49,14 @@ export async function POST(request: NextRequest) {
     const baseUrl = customBaseUrl || 'https://open.bigmodel.cn/api/paas/v4';
     const apiUrl = `${baseUrl}/videos/generations`;
 
+    // 优化 prompt 以增强音频生成
+    // 添加音频描述引导，帮助模型理解需要生成声音
+    const enhancedPrompt = prompt.includes('声音') || prompt.includes('叫') || prompt.includes('音频')
+      ? `${prompt} 请为视频生成同步的音频，包括角色的声音、环境音效和背景音乐。`
+      : `${prompt} （包含同步音效和背景音乐）`;
+
     console.log(`调用智谱AI文生视频API: ${apiUrl}`);
-    console.log('请求体:', JSON.stringify({ model, prompt }));
+    console.log('请求体:', JSON.stringify({ model, prompt: enhancedPrompt, with_audio: true }));
 
     // 调用智谱AI文生视频API
     const response = await fetch(apiUrl, {
@@ -61,7 +67,8 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         model,
-        prompt,
+        prompt: enhancedPrompt, // 使用增强后的 prompt 以提高音频生成成功率
+        with_audio: true, // 生成 AI 音效（语音、音效和背景音乐）
       }),
     });
 
