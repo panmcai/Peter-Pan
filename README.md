@@ -11,3 +11,9 @@
 
 # 免费工具推荐
 [FloatVisualizer](https://panmcai.github.io/FloatVisualizer/)
+
+# 技术框架
+- 聊天：智谱AI glm-4.7-flash
+- 文生图：智谱AI CogView-3-Flash
+- 文生视频：CogVideoX-Flash
+- TTS：Edge-TTS
