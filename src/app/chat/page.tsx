@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader2, Sparkles, Clock, Trash2, Settings, AlertCircle, Download, Image as ImageIcon, ExternalLink, Video as VideoIcon, Square, Volume2, VolumeX } from 'lucide-react';
+import { Send, Bot, User, Loader2, Sparkles, Clock, Trash2, Settings, AlertCircle, Download, Image as ImageIcon, ExternalLink, Video as VideoIcon, Square, Volume2, VolumeX, DownloadCloud, Headphones } from 'lucide-react';
 import ModelConfig, { AIModelConfig } from '@/components/ModelConfig';
+import TTSSettings, { TTSSettings as TTSSettingsType } from '@/components/TTSSettings';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -19,7 +20,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: '你好！我是 Peter·Pan 的 AI 助手。我可以帮助你回答问题、提供信息或者只是聊聊天。\n\n💡 你可以通过右上角的「设置」按钮配置自己的大模型，默认由 GLM-4.7-Flash 模型为你提供服务。\n\n🎨 **文生图功能**：选择「CogView-3-Flash」模型，我可以根据你的描述生成图片！\n\n🎬 **文生视频功能**：选择「CogVideoX-Flash」模型，我可以根据你的描述生成视频！生成的视频会包含同步的 AI 音效（语音、音效和背景音乐）。\n\n🔊 **TTS 语音朗读功能**：\n- 点击消息旁的「朗读」按钮，使用浏览器本地语音合成朗读内容\n- 音色取决于您的设备系统（Windows/Mac/Android/iOS）\n- 无需网络，快速响应\n\n📝 **视频时长说明**：目前 CogVideoX-Flash 模型支持的视频时长约为 **6-10 秒**，不支持生成更长的视频。如果你需要更长的视频，建议分段生成或使用其他专业视频工具。\n\n🎵 **音频生成提示**：为了获得更好的音频效果，建议在描述中明确包含声音相关的提示，例如：\n- "一个人说：\'你好！\'"（人类对话）\n- "热闹的街道，汽车喇叭声、行人交谈声"（环境音效）\n- "轻柔的背景音乐，营造温馨氛围"（背景音乐）\n\n⚠️ **注意事项**：\n- 音频生成主要针对人类语音和环境音效，对动物叫声的支持有限\n- 视频时长受模型限制，一般为 6-10 秒',
+      content: '你好！我是 Peter·Pan 的 AI 助手。我可以帮助你回答问题、提供信息或者只是聊聊天。\n\n💡 你可以通过右上角的「设置」按钮配置自己的大模型，默认由 GLM-4.7-Flash 模型为你提供服务。\n\n🎨 **文生图功能**：选择「CogView-3-Flash」模型，我可以根据你的描述生成图片！\n\n🎬 **文生视频功能**：选择「CogVideoX-Flash」模型，我可以根据你的描述生成视频！生成的视频会包含同步的 AI 音效（语音、音效和背景音乐）。\n\n🔊 **TTS 语音朗读功能**：\n- 点击消息旁的「朗读」按钮，使用浏览器本地语音合成朗读内容\n- 点击右上角的「语音」按钮，可以为不同语言配置专属音色\n- 系统会根据消息内容自动检测语言，并使用对应语言的音色\n- 点击「下载」按钮可以导出音频（需要使用系统录音工具辅助）\n\n📝 **视频时长说明**：目前 CogVideoX-Flash 模型支持的视频时长约为 **6-10 秒**，不支持生成更长的视频。如果你需要更长的视频，建议分段生成或使用其他专业视频工具。\n\n🎵 **音频生成提示**：为了获得更好的音频效果，建议在描述中明确包含声音相关的提示，例如：\n- "一个人说：\'你好！\'"（人类对话）\n- "热闹的街道，汽车喇叭声、行人交谈声"（环境音效）\n- "轻柔的背景音乐，营造温馨氛围"（背景音乐）\n\n⚠️ **注意事项**：\n- 音频生成主要针对人类语音和环境音效，对动物叫声的支持有限\n- 视频时长受模型限制，一般为 6-10 秒',
       timestamp: new Date(),
     },
   ]);
@@ -37,7 +38,10 @@ export default function ChatPage() {
 
   // TTS 相关状态
   const [playingMessageIndex, setPlayingMessageIndex] = useState<number | null>(null);
+  const [downloadingMessageIndex, setDownloadingMessageIndex] = useState<number | null>(null);
   const speechSynthesisRef = useRef<SpeechSynthesis | null>(typeof window !== 'undefined' ? window.speechSynthesis : null);
+  const [showTTSSettings, setShowTTSSettings] = useState(false);
+  const [ttsSettings, setTTSSettings] = useState<TTSSettingsType | undefined>();
 
   // 聊天记录缓存配置
   const CHAT_CACHE_KEY = 'chat_history';
@@ -115,6 +119,16 @@ export default function ChatPage() {
       initialMessageCountRef.current = chatHistory.length;
     }
 
+    // 加载 TTS 设置
+    try {
+      const saved = localStorage.getItem('tts-voice-settings');
+      if (saved) {
+        setTTSSettings(JSON.parse(saved));
+      }
+    } catch (error) {
+      console.error('[Chat] 加载 TTS 设置失败:', error);
+    }
+
     // 页面加载时滚动到顶部
     window.scrollTo(0, 0);
   }, []);
@@ -151,6 +165,22 @@ export default function ChatPage() {
       setLoading(false);
       console.log('[Chat] 生成已停止');
     }
+  };
+
+  // 检测文本语言
+  const detectLanguage = (text: string): string => {
+    const chineseChars = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
+    const englishChars = (text.match(/[a-zA-Z]/g) || []).length;
+    const totalChars = text.length;
+
+    if (totalChars === 0) return 'zh';
+
+    // 如果中文字符占比超过 30%，判定为中文
+    if (chineseChars / totalChars > 0.3) return 'zh';
+    // 如果英文字符占比超过 60%，判定为英文
+    if (englishChars / totalChars > 0.6) return 'en';
+
+    return 'zh'; // 默认中文
   };
 
   // 停止 TTS 播放
@@ -196,18 +226,82 @@ export default function ChatPage() {
     // 创建语音合成实例
     const utterance = new SpeechSynthesisUtterance(plainText);
 
-    // 设置语言（中文）
-    utterance.lang = 'zh-CN';
+    // 检测文本语言
+    const detectedLang = detectLanguage(plainText);
+    console.log('[TTS] 检测到语言:', detectedLang);
+
+    // 设置语言
+    utterance.lang = detectedLang === 'zh' ? 'zh-CN' : detectedLang;
     utterance.rate = 1;
     utterance.pitch = 1;
 
-    // 尝试选择中文语音
-    const voices = speechSynthesisRef.current.getVoices();
-    const chineseVoice = voices.find(voice =>
-      voice.lang.includes('zh') && voice.name.includes('Neural')
-    );
-    if (chineseVoice) {
-      utterance.voice = chineseVoice;
+    // 根据检测的语言选择音色
+    if (ttsSettings?.voices && ttsSettings.voices.length > 0) {
+      const voices = speechSynthesisRef.current.getVoices();
+      console.log('[TTS] 可用语音数量:', voices.length);
+
+      // 查找用户为该语言配置的音色
+      const voiceSetting = ttsSettings.voices.find(v => v.lang === detectedLang);
+      if (voiceSetting) {
+        console.log('[TTS] 查找用户配置的音色 URI:', voiceSetting.voiceURI);
+        const selectedVoice = voices.find(v => v.voiceURI === voiceSetting.voiceURI);
+        if (selectedVoice) {
+          utterance.voice = selectedVoice;
+          utterance.lang = selectedVoice.lang;
+          console.log('[TTS] ✓ 使用用户配置的音色:', selectedVoice.name, selectedVoice.lang);
+        } else {
+          console.warn('[TTS] ✗ 找不到用户配置的音色，尝试使用默认音色');
+          // 如果找不到配置的音色，使用默认
+          utterance.voice = selectDefaultVoice(detectedLang, voices);
+          console.log('[TTS] 使用默认音色:', utterance.voice?.name);
+        }
+      } else {
+        console.log('[TTS] 用户未配置该语言的音色，使用默认音色');
+        utterance.voice = selectDefaultVoice(detectedLang, voices);
+        console.log('[TTS] 使用默认音色:', utterance.voice?.name);
+      }
+      } else {
+        // 没有为该语言配置音色，使用默认
+        // 中文优先选择 Xiaoxiao Online，其他语言优先选择 Neural
+        const defaultVoice = voices.find(voice =>
+          voice.lang.startsWith(detectedLang) &&
+          (detectedLang === 'zh'
+            ? voice.name.toLowerCase().includes('xiaoxiao') && voice.name.toLowerCase().includes('online')
+            : voice.name.includes('Neural'))
+        );
+        if (defaultVoice) {
+          utterance.voice = defaultVoice;
+          console.log('[TTS] 使用默认音色:', defaultVoice.name);
+        } else {
+          // 回退策略：中文使用任意 Neural，其他语言使用第一个匹配的
+          const fallbackVoice = voices.find(voice =>
+            voice.lang.startsWith(detectedLang)
+          );
+          if (fallbackVoice) {
+            utterance.voice = fallbackVoice;
+            console.log('[TTS] 使用回退音色:', fallbackVoice.name);
+          }
+        }
+      }
+    } else {
+      // 没有配置，使用默认中文语音
+      const voices = speechSynthesisRef.current.getVoices();
+      // 优先选择 Xiaoxiao Online
+      const xiaoxiaoOnline = voices.find(voice =>
+        voice.lang.includes('zh') && voice.name.toLowerCase().includes('xiaoxiao') && voice.name.toLowerCase().includes('online')
+      );
+      if (xiaoxiaoOnline) {
+        utterance.voice = xiaoxiaoOnline;
+        console.log('[TTS] 使用 Xiaoxiao Online 音色');
+      } else {
+        // 回退到 Neural 音色
+        const chineseVoice = voices.find(voice =>
+          voice.lang.includes('zh') && voice.name.includes('Neural')
+        );
+        if (chineseVoice) {
+          utterance.voice = chineseVoice;
+        }
+      }
     }
 
     // 播放事件
@@ -228,6 +322,89 @@ export default function ChatPage() {
 
     // 开始播放
     speechSynthesisRef.current.speak(utterance);
+  };
+
+  // 下载 TTS 音频（使用 MediaRecorder）
+  const handleDownloadTTS = async (text: string, index: number) => {
+    if (downloadingMessageIndex === index) return;
+
+    setDownloadingMessageIndex(index);
+
+    // 提取纯文本
+    let plainText = text
+      .replace(/#{1,6}\s+/g, '')
+      .replace(/\*\*/g, '')
+      .replace(/\*/g, '')
+      .replace(/`/g, '')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/!\[([^\]]*)\]\([^)]+\)/g, '')
+      .replace(/\n+/g, ' ')
+      .trim();
+
+    if (!plainText) {
+      setDownloadingMessageIndex(null);
+      return;
+    }
+
+    // 检测语言
+    const detectedLang = detectLanguage(plainText);
+
+    try {
+      // 创建 AudioContext
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+      const audioContext = new AudioContext();
+
+      // 获取用户选择的音色
+      let voiceURI = '';
+      if (ttsSettings?.voices) {
+        const voiceSetting = ttsSettings.voices.find(v => v.lang === detectedLang);
+        if (voiceSetting) {
+          voiceURI = voiceSetting.voiceURI;
+        }
+      }
+
+      // 使用 Web Speech API 生成语音
+      const utterance = new SpeechSynthesisUtterance(plainText);
+      utterance.lang = detectedLang === 'zh' ? 'zh-CN' : detectedLang;
+      utterance.rate = 1;
+      utterance.pitch = 1;
+
+      const voices = window.speechSynthesis.getVoices();
+      if (voiceURI) {
+        const selectedVoice = voices.find(v => v.voiceURI === voiceURI);
+        if (selectedVoice) {
+          utterance.voice = selectedVoice;
+          utterance.lang = selectedVoice.lang;
+        }
+      } else {
+        const defaultVoice = voices.find(voice =>
+          voice.lang.startsWith(detectedLang) && voice.name.includes('Neural')
+        );
+        if (defaultVoice) {
+          utterance.voice = defaultVoice;
+        }
+      }
+
+      // 注意：由于浏览器限制，SpeechSynthesis 无法直接与 Web Audio API 连接
+      // 这里使用一个变通方案：使用 MediaRecorder 录制系统音频输出
+      // 但这需要用户授权并且需要特殊设置
+
+      alert(
+        '⚠️ 音频下载功能说明\n\n' +
+        '由于浏览器安全限制，无法直接录制 TTS 语音合成输出。\n\n' +
+        '变通方案：\n' +
+        '1. 点击「朗读」按钮播放语音\n' +
+        '2. 使用系统录音工具（如 Windows 录音机、Mac QuickTime）录制\n' +
+        '3. 或者使用第三方 TTS 服务（需要后端支持）\n\n' +
+        '抱歉给您带来不便！'
+      );
+
+      setDownloadingMessageIndex(null);
+    } catch (error) {
+      console.error('[TTS] 下载失败:', error);
+      alert('音频下载失败，请重试');
+      setDownloadingMessageIndex(null);
+    }
   };
 
   // 处理输入变化
@@ -514,6 +691,14 @@ export default function ChatPage() {
                 <span className="hidden sm:inline">设置</span>
               </button>
               <button
+                onClick={() => setShowTTSSettings(true)}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/20 rounded-lg transition-all"
+                title="语音朗读设置"
+              >
+                <Headphones size={16} />
+                <span className="hidden sm:inline">语音</span>
+              </button>
+              <button
                 onClick={clearChat}
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-all"
                 title="清空对话"
@@ -577,6 +762,15 @@ export default function ChatPage() {
                               </>
                             )}
                           </button>
+                          <button
+                            onClick={() => handleDownloadTTS(message.content, index)}
+                            disabled={downloadingMessageIndex === index}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-white dark:bg-sky-200/50 text-sky-700 dark:text-sky-400 hover:bg-sky-100 dark:hover:bg-sky-200/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="下载音频"
+                          >
+                            <DownloadCloud size={14} />
+                            <span>下载</span>
+                          </button>
                         </div>
                       )}
                     </div>
@@ -611,6 +805,15 @@ export default function ChatPage() {
                                 <span>朗读</span>
                               </>
                             )}
+                          </button>
+                          <button
+                            onClick={() => handleDownloadTTS(message.content, index)}
+                            disabled={downloadingMessageIndex === index}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="下载音频"
+                          >
+                            <DownloadCloud size={14} />
+                            <span>下载</span>
                           </button>
                         </div>
                       )}
@@ -778,44 +981,84 @@ export default function ChatPage() {
       </div>
 
       {/* 输入区域 */}
-      <div className="border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-        <div className="max-w-5xl mx-auto px-4 py-4">
-          <div className="flex gap-3">
+      <div className="border-t border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm">
+        <div className="max-w-5xl mx-auto px-4 py-6">
+          {/* 整体输入框容器 */}
+          <div className="relative border border-zinc-200 dark:border-zinc-700 rounded-2xl bg-white dark:bg-zinc-800 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all">
+            {/* 输入框 */}
             <textarea
               value={input}
               onChange={handleInputChange}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  sendMessage();
-                }
-              }}
-              placeholder="输入消息，按 Enter 发送，Shift + Enter 换行..."
-              className="flex-1 resize-none rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-zinc-100 min-h-[48px] max-h-[200px]"
+              placeholder="输入消息，按 Enter 发送消息，Shift + Enter 换行"
               rows={1}
+              className="w-full px-6 py-4 pb-16 border-0 bg-transparent text-zinc-900 dark:text-zinc-100 focus:outline-none resize-none placeholder:text-zinc-400 dark:placeholder:text-zinc-500 text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={loading || !modelConfig}
+              style={{
+                minHeight: '120px',
+                maxHeight: '300px',
+              }}
+              onKeyDown={(e) => {
+                // 自动调整高度
+                const target = e.target as HTMLTextAreaElement;
+                target.style.height = 'auto';
+                target.style.height = Math.min(target.scrollHeight, 300) + 'px';
+              }}
             />
-            {loading ? (
-              <button
-                onClick={stopGeneration}
-                className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium transition-all flex items-center gap-2"
-              >
-                <Square size={16} />
-                <span>停止</span>
-              </button>
-            ) : (
-              <button
-                onClick={sendMessage}
-                disabled={!input.trim()}
-                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Send size={16} />
-                <span className="hidden sm:inline">发送</span>
-              </button>
-            )}
+
+            {/* 底部按钮栏 */}
+            <div className="absolute bottom-0 left-0 right-0 px-4 py-3 flex items-center justify-between">
+              {/* 左侧功能按钮 */}
+              <div className="flex items-center gap-2">
+                {/* 深度思考按钮 */}
+                <button
+                  onClick={() => setDeepThink(!deepThink)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    deepThink
+                      ? 'bg-purple-600 text-white shadow-md'
+                      : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-600'
+                  }`}
+                  title="启用深度思考，AI 会展示详细的推理过程"
+                >
+                  <Sparkles size={16} />
+                  <span className="hidden sm:inline">深度思考</span>
+                </button>
+
+                {/* 联网搜索按钮 */}
+                <button
+                  onClick={() => setWebSearch(!webSearch)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    webSearch
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-600'
+                  }`}
+                  title="启用联网搜索，AI 会先搜索最新信息"
+                >
+                  <AlertCircle size={16} />
+                  <span className="hidden sm:inline">联网搜索</span>
+                </button>
+              </div>
+
+              {/* 右侧发送/停止按钮 */}
+              {loading ? (
+                <button
+                  onClick={stopGeneration}
+                  className="w-10 h-10 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white rounded-xl font-medium transition-all shadow-md shadow-red-600/20 hover:shadow-lg hover:shadow-red-600/30 flex items-center justify-center"
+                  title="停止生成"
+                >
+                  <Square className="w-4 h-4" />
+                </button>
+              ) : (
+                <button
+                  onClick={sendMessage}
+                  disabled={!input.trim() || !modelConfig}
+                  className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-blue-600/20 hover:shadow-lg hover:shadow-blue-600/30 flex items-center justify-center"
+                  title="发送消息"
+                >
+                  <Send className="w-5 h-5" />
+                </button>
+              )}
+            </div>
           </div>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2 text-center">
-            由 GLM-4.7-Flash 模型提供服务 · 支持深度思考与联网搜索
-          </p>
         </div>
       </div>
 
@@ -835,6 +1078,14 @@ export default function ChatPage() {
         onClose={() => setShowConfig(false)}
         onConfigChange={handleConfigChange}
         currentConfig={modelConfig || undefined}
+      />
+
+      {/* TTS 设置对话框 */}
+      <TTSSettings
+        isOpen={showTTSSettings}
+        onClose={() => setShowTTSSettings(false)}
+        onSettingsChange={setTTSSettings}
+        currentSettings={ttsSettings}
       />
     </div>
   );
