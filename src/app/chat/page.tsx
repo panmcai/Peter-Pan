@@ -922,7 +922,7 @@ export default function ChatPage() {
                             title="下载音频"
                           >
                             <DownloadCloud size={14} />
-                            <span>下载</span>
+                            <span>TTS语音</span>
                           </button>
                         </div>
                       )}
