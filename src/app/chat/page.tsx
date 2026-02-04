@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader2, Sparkles, Clock, Trash2, Settings, AlertCircle, Download, Image as ImageIcon, ExternalLink, Video as VideoIcon, Square } from 'lucide-react';
+import { Send, Bot, User, Loader2, Sparkles, Clock, Trash2, Settings, AlertCircle, Download, Image as ImageIcon, ExternalLink, Video as VideoIcon, Square, Volume2, VolumeX } from 'lucide-react';
 import ModelConfig, { AIModelConfig } from '@/components/ModelConfig';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -34,6 +34,10 @@ export default function ChatPage() {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const initialMessageCountRef = useRef<number>(1); // 初始有1条欢迎消息
   const abortControllerRef = useRef<AbortController | null>(null); // 用于中断请求
+
+  // TTS 相关状态
+  const [playingMessageIndex, setPlayingMessageIndex] = useState<number | null>(null);
+  const speechSynthesisRef = useRef<SpeechSynthesis | null>(typeof window !== 'undefined' ? window.speechSynthesis : null);
 
   // 聊天记录缓存配置
   const CHAT_CACHE_KEY = 'chat_history';
@@ -159,6 +163,83 @@ export default function ChatPage() {
       setLoading(false);
       console.log('[Chat] 生成已停止');
     }
+  };
+
+  // 停止 TTS 播放
+  const stopTTS = () => {
+    if (speechSynthesisRef.current) {
+      speechSynthesisRef.current.cancel();
+      setPlayingMessageIndex(null);
+    }
+  };
+
+  // 播放 TTS
+  const playTTS = (text: string, index: number) => {
+    if (!speechSynthesisRef.current) {
+      console.error('[TTS] 浏览器不支持语音合成');
+      return;
+    }
+
+    // 如果正在播放该消息，则停止
+    if (playingMessageIndex === index) {
+      stopTTS();
+      return;
+    }
+
+    // 停止当前播放
+    stopTTS();
+
+    // 提取纯文本（去除 markdown 标记）
+    const plainText = text
+      .replace(/#{1,6}\s+/g, '') // 去除标题标记
+      .replace(/\*\*/g, '') // 去除粗体标记
+      .replace(/\*/g, '') // 去除斜体标记
+      .replace(/`/g, '') // 去除代码标记
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // 去除链接
+      .replace(/!\[([^\]]*)\]\([^)]+\)/g, '') // 去除图片
+      .replace(/\n+/g, ' ') // 换行转为空格
+      .trim();
+
+    if (!plainText) {
+      console.error('[TTS] 没有可播放的文本');
+      return;
+    }
+
+    // 创建语音合成实例
+    const utterance = new SpeechSynthesisUtterance(plainText);
+
+    // 设置语言（中文）
+    utterance.lang = 'zh-CN';
+    utterance.rate = 1; // 语速
+    utterance.pitch = 1; // 音调
+
+    // 尝试选择中文语音
+    const voices = speechSynthesisRef.current.getVoices();
+    const chineseVoice = voices.find(voice =>
+      voice.lang.includes('zh') && voice.name.includes('Neural')
+    );
+    if (chineseVoice) {
+      utterance.voice = chineseVoice;
+    }
+
+    // 播放事件
+    utterance.onstart = () => {
+      setPlayingMessageIndex(index);
+      console.log('[TTS] 开始播放');
+    };
+
+    utterance.onend = () => {
+      setPlayingMessageIndex(null);
+      console.log('[TTS] 播放结束');
+    };
+
+    utterance.onerror = (event) => {
+      console.error('[TTS] 播放错误:', event.error);
+      setPlayingMessageIndex(null);
+    };
+
+    // 开始播放
+    speechSynthesisRef.current.speak(utterance);
   };
 
   // 处理输入变化
@@ -543,12 +624,45 @@ export default function ChatPage() {
                   </div>
                 )}
                 <div
-                  className={`w-full max-w-full rounded-2xl px-5 py-4 shadow-sm ${
+                  className={`w-full max-w-full rounded-2xl shadow-sm ${
                     message.role === 'user'
-                      ? 'bg-gradient-to-br from-sky-50 to-sky-100 text-sky-950 shadow-sky-100/20'
+                      ? 'bg-gradient-to-br from-sky-50 to-sky-100 text-sky-950 shadow-sky-100/20 px-5 py-4'
                       : 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700'
                   }`}
                 >
+                  {/* 助手消息标题栏 */}
+                  {message.role === 'assistant' && (
+                    <div className="flex items-center justify-between mb-3 pb-3 border-b border-zinc-200 dark:border-zinc-700">
+                      <div className="flex items-center gap-2">
+                        <Bot className="w-4 h-4 text-blue-600" />
+                        <span className="text-xs font-medium text-zinc-600 dark:text-zinc-400">AI 助手</span>
+                      </div>
+                      {message.content && (
+                        <button
+                          onClick={() => playTTS(message.content, index)}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                            playingMessageIndex === index
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-600'
+                          }`}
+                          title={playingMessageIndex === index ? '停止播放' : '播放语音'}
+                        >
+                          {playingMessageIndex === index ? (
+                            <>
+                              <VolumeX size={14} />
+                              <span>停止</span>
+                            </>
+                          ) : (
+                            <>
+                              <Volume2 size={14} />
+                              <span>朗读</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  )}
+
                   <div className="leading-relaxed text-sm sm:text-base text-zinc-900 dark:text-zinc-100 max-w-none">
                     {message.role === 'assistant' && message.type === 'video' && message.videoUrl ? (
                       <div className="space-y-4">
