@@ -183,6 +183,84 @@ export default function ChatPage() {
     return 'zh'; // 默认中文
   };
 
+  // 选择默认音色
+  const selectDefaultVoice = (lang: string, voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null => {
+    if (!voices.length) {
+      console.warn('[TTS] 没有可用的语音');
+      return null;
+    }
+
+    // 筛选该语言的语音
+    const langVoices = voices.filter(voice => voice.lang.startsWith(lang));
+
+    if (!langVoices.length) {
+      console.warn('[TTS] 没有找到该语言的语音，使用第一个语音');
+      return voices[0] || null;
+    }
+
+    // 中文优先选择 Xiaoxiao Online
+    if (lang === 'zh') {
+      // 1. 尝试精确匹配 "Xiaoxiao Online"
+      const xiaoxiaoOnline = langVoices.find(voice =>
+        voice.name.toLowerCase().includes('xiaoxiao') &&
+        voice.name.toLowerCase().includes('online')
+      );
+
+      if (xiaoxiaoOnline) {
+        console.log('[TTS] 找到 Xiaoxiao Online:', xiaoxiaoOnline.name);
+        return xiaoxiaoOnline;
+      }
+
+      // 2. 尝试匹配 Xiaoxiao（不区分 Online）
+      const xiaoxiao = langVoices.find(voice =>
+        voice.name.toLowerCase().includes('xiaoxiao')
+      );
+
+      if (xiaoxiao) {
+        console.log('[TTS] 找到 Xiaoxiao:', xiaoxiao.name);
+        return xiaoxiao;
+      }
+
+      // 3. 尝试匹配 Online 语音
+      const onlineVoice = langVoices.find(voice =>
+        voice.name.toLowerCase().includes('online')
+      );
+
+      if (onlineVoice) {
+        console.log('[TTS] 找到 Online 语音:', onlineVoice.name);
+        return onlineVoice;
+      }
+
+      // 4. 回退到 Neural 语音
+      const neuralVoice = langVoices.find(voice =>
+        voice.name.toLowerCase().includes('neural')
+      );
+
+      if (neuralVoice) {
+        console.log('[TTS] 找到 Neural 语音:', neuralVoice.name);
+        return neuralVoice;
+      }
+
+      // 5. 使用第一个中文语音
+      console.log('[TTS] 使用第一个中文语音:', langVoices[0].name);
+      return langVoices[0] || null;
+    }
+
+    // 其他语言优先选择 Neural
+    const neuralVoice = langVoices.find(voice =>
+      voice.name.toLowerCase().includes('neural')
+    );
+
+    if (neuralVoice) {
+      console.log('[TTS] 找到 Neural 语音:', neuralVoice.name);
+      return neuralVoice;
+    }
+
+    // 使用第一个该语言的语音
+    console.log('[TTS] 使用第一个该语言的语音:', langVoices[0].name);
+    return langVoices[0] || null;
+  };
+
   // 停止 TTS 播放
   const stopTTS = () => {
     if (speechSynthesisRef.current) {
@@ -260,48 +338,12 @@ export default function ChatPage() {
         utterance.voice = selectDefaultVoice(detectedLang, voices);
         console.log('[TTS] 使用默认音色:', utterance.voice?.name);
       }
-      } else {
-        // 没有为该语言配置音色，使用默认
-        // 中文优先选择 Xiaoxiao Online，其他语言优先选择 Neural
-        const defaultVoice = voices.find(voice =>
-          voice.lang.startsWith(detectedLang) &&
-          (detectedLang === 'zh'
-            ? voice.name.toLowerCase().includes('xiaoxiao') && voice.name.toLowerCase().includes('online')
-            : voice.name.includes('Neural'))
-        );
-        if (defaultVoice) {
-          utterance.voice = defaultVoice;
-          console.log('[TTS] 使用默认音色:', defaultVoice.name);
-        } else {
-          // 回退策略：中文使用任意 Neural，其他语言使用第一个匹配的
-          const fallbackVoice = voices.find(voice =>
-            voice.lang.startsWith(detectedLang)
-          );
-          if (fallbackVoice) {
-            utterance.voice = fallbackVoice;
-            console.log('[TTS] 使用回退音色:', fallbackVoice.name);
-          }
-        }
-      }
     } else {
-      // 没有配置，使用默认中文语音
+      // 没有配置，使用默认语音
       const voices = speechSynthesisRef.current.getVoices();
-      // 优先选择 Xiaoxiao Online
-      const xiaoxiaoOnline = voices.find(voice =>
-        voice.lang.includes('zh') && voice.name.toLowerCase().includes('xiaoxiao') && voice.name.toLowerCase().includes('online')
-      );
-      if (xiaoxiaoOnline) {
-        utterance.voice = xiaoxiaoOnline;
-        console.log('[TTS] 使用 Xiaoxiao Online 音色');
-      } else {
-        // 回退到 Neural 音色
-        const chineseVoice = voices.find(voice =>
-          voice.lang.includes('zh') && voice.name.includes('Neural')
-        );
-        if (chineseVoice) {
-          utterance.voice = chineseVoice;
-        }
-      }
+      console.log('[TTS] 可用语音数量:', voices.length);
+      utterance.voice = selectDefaultVoice(detectedLang, voices);
+      console.log('[TTS] 使用默认音色:', utterance.voice?.name);
     }
 
     // 播放事件
