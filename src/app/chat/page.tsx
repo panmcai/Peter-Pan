@@ -10,6 +10,7 @@ import remarkGfm from 'remark-gfm';
 interface Message {
   role: 'user' | 'assistant' | 'system';
   content: string;
+  reasoningContent?: string; // 思考过程（用于 glm-4.7-flash 等支持推理的模型）
   type?: 'text' | 'image' | 'video';
   imageUrl?: string;
   videoUrl?: string;
@@ -653,13 +654,15 @@ export default function ChatPage() {
       const assistantMessage: Message = {
         role: 'assistant',
         content: '',
+        reasoningContent: '',
         timestamp: new Date(),
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
 
       let buffer = '';
-      let assistantContent = ''; // 使用局部变量累加内容
+      let assistantContent = ''; // 回答内容
+      let reasoningContent = ''; // 思考内容
 
       while (true) {
         const { done, value } = await reader.read();
@@ -680,19 +683,25 @@ export default function ChatPage() {
 
             try {
               const json = JSON.parse(data);
-              // 处理不同模型的响应字段
-              // glm-4.7-flash 使用 reasoning_content，其他模型使用 content
-              const content = json.choices?.[0]?.delta?.reasoning_content || json.choices?.[0]?.delta?.content || '';
+              const delta = json.choices?.[0]?.delta || {};
 
-              if (content) {
-                // 累加内容到局部变量
-                assistantContent += content;
-                
-                // 更新最后一个消息的内容
+              // 处理思考内容（reasoning_content）
+              if (delta.reasoning_content) {
+                reasoningContent += delta.reasoning_content;
+              }
+
+              // 处理回答内容（content）
+              if (delta.content) {
+                assistantContent += delta.content;
+              }
+
+              // 如果有内容更新，更新最后一个消息
+              if (delta.reasoning_content || delta.content) {
                 setMessages((prev) => {
                   const updated = [...prev];
                   const lastMessage = updated[updated.length - 1];
                   if (lastMessage && lastMessage.role === 'assistant') {
+                    lastMessage.reasoningContent = reasoningContent;
                     lastMessage.content = assistantContent;
                   }
                   return updated;
@@ -1041,46 +1050,72 @@ export default function ChatPage() {
                         </div>
                       </div>
                     ) : message.role === 'assistant' ? (
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        components={{
-                          // 自定义样式
-                          p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
-                          h1: ({ children }) => <h1 className="text-xl font-bold mb-3">{children}</h1>,
-                          h2: ({ children }) => <h2 className="text-lg font-bold mb-2">{children}</h2>,
-                          h3: ({ children }) => <h3 className="text-base font-bold mb-2">{children}</h3>,
-                          ul: ({ children }) => <ul className="list-disc list-inside mb-3">{children}</ul>,
-                          ol: ({ children }) => <ol className="list-decimal list-inside mb-3">{children}</ol>,
-                          li: ({ children }) => <li className="mb-1">{children}</li>,
-                          code: ({ className, children, ...props }: any) => {
-                            const isInline = !className;
-                            return isInline ? (
-                              <code className="bg-zinc-100 dark:bg-zinc-700 px-1.5 py-0.5 rounded text-xs font-mono" {...props}>
-                                {children}
-                              </code>
-                            ) : (
-                              <code className="block bg-zinc-100 dark:bg-zinc-700 px-3 py-2 rounded-lg text-xs font-mono overflow-x-auto" {...props}>
-                                {children}
-                              </code>
-                            );
-                          },
-                          pre: ({ children }) => <pre className="bg-zinc-100 dark:bg-zinc-700 p-3 rounded-lg overflow-x-auto mb-3">{children}</pre>,
-                          blockquote: ({ children }) => (
-                            <blockquote className="border-l-4 border-zinc-300 dark:border-zinc-600 pl-3 italic mb-3">
-                              {children}
-                            </blockquote>
-                          ),
-                          a: ({ href, children }) => (
-                            <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600 underline">
-                              {children}
-                            </a>
-                          ),
-                          strong: ({ children }) => <strong className="font-bold">{children}</strong>,
-                          em: ({ children }) => <em className="italic">{children}</em>,
-                        }}
-                      >
-                        {message.content}
-                      </ReactMarkdown>
+                      <div className="space-y-4">
+                        {/* 思考过程部分 */}
+                        {message.reasoningContent && (
+                          <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                            <div className="flex items-center gap-2 mb-2 pb-2 border-b border-amber-200 dark:border-amber-800">
+                              <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                              <span className="text-sm font-semibold text-amber-800 dark:text-amber-200">💭 思考过程</span>
+                            </div>
+                            <div className="text-sm text-amber-900 dark:text-amber-100 whitespace-pre-wrap">
+                              {message.reasoningContent}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 回答内容部分 */}
+                        {message.content && (
+                          <div>
+                            {message.reasoningContent && (
+                              <div className="flex items-center gap-2 mb-2 pb-2 border-b border-zinc-200 dark:border-zinc-700">
+                                <Bot className="w-4 h-4 text-blue-600" />
+                                <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">📝 回答</span>
+                              </div>
+                            )}
+                            <ReactMarkdown
+                              remarkPlugins={[remarkGfm]}
+                              components={{
+                                // 自定义样式
+                                p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
+                                h1: ({ children }) => <h1 className="text-xl font-bold mb-3">{children}</h1>,
+                                h2: ({ children }) => <h2 className="text-lg font-bold mb-2">{children}</h2>,
+                                h3: ({ children }) => <h3 className="text-base font-bold mb-2">{children}</h3>,
+                                ul: ({ children }) => <ul className="list-disc list-inside mb-3">{children}</ul>,
+                                ol: ({ children }) => <ol className="list-decimal list-inside mb-3">{children}</ol>,
+                                li: ({ children }) => <li className="mb-1">{children}</li>,
+                                code: ({ className, children, ...props }: any) => {
+                                  const isInline = !className;
+                                  return isInline ? (
+                                    <code className="bg-zinc-100 dark:bg-zinc-700 px-1.5 py-0.5 rounded text-xs font-mono" {...props}>
+                                      {children}
+                                    </code>
+                                  ) : (
+                                    <code className="block bg-zinc-100 dark:bg-zinc-700 px-3 py-2 rounded-lg text-xs font-mono overflow-x-auto" {...props}>
+                                      {children}
+                                    </code>
+                                  );
+                                },
+                                pre: ({ children }) => <pre className="bg-zinc-100 dark:bg-zinc-700 p-3 rounded-lg overflow-x-auto mb-3">{children}</pre>,
+                                blockquote: ({ children }) => (
+                                  <blockquote className="border-l-4 border-zinc-300 dark:border-zinc-600 pl-3 italic mb-3">
+                                    {children}
+                                  </blockquote>
+                                ),
+                                a: ({ href, children }) => (
+                                  <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600 underline">
+                                    {children}
+                                  </a>
+                                ),
+                                strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+                                em: ({ children }) => <em className="italic">{children}</em>,
+                              }}
+                            >
+                              {message.content}
+                            </ReactMarkdown>
+                          </div>
+                        )}
+                      </div>
                     ) : (
                       <p className="whitespace-pre-wrap">{message.content}</p>
                     )}
