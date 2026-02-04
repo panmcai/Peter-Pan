@@ -282,8 +282,9 @@ export default function ChatPage() {
       return;
     }
 
-    // 停止当前播放
+    // 停止当前播放并清理队列
     stopTTS();
+    speechSynthesisRef.current.cancel();
 
     // 提取纯文本（去除 markdown 标记）
     let plainText = text
@@ -293,6 +294,7 @@ export default function ChatPage() {
       .replace(/`/g, '') // 去除代码标记
       .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // 去除链接
       .replace(/!\[([^\]]*)\]\([^)]+\)/g, '') // 去除图片
+      .replace(/TTS>>/g, '') // 去除 TTS 前缀
       .replace(/\n+/g, ' ') // 换行转为空格
       .trim();
 
@@ -313,37 +315,40 @@ export default function ChatPage() {
     utterance.rate = 1;
     utterance.pitch = 1;
 
-    // 根据检测的语言选择音色
-    if (ttsSettings?.voices && ttsSettings.voices.length > 0) {
-      const voices = speechSynthesisRef.current.getVoices();
-      console.log('[TTS] 可用语音数量:', voices.length);
+    // 获取当前可用语音
+    const voices = speechSynthesisRef.current.getVoices();
+    console.log('[TTS] 可用语音数量:', voices.length);
+    console.log('[TTS] 可用语音列表:', voices.map(v => `${v.name} (${v.lang})`).join(', '));
 
+    // 根据检测的语言选择音色
+    let selectedVoice: SpeechSynthesisVoice | null = null;
+
+    if (ttsSettings?.voices && ttsSettings.voices.length > 0) {
       // 查找用户为该语言配置的音色
       const voiceSetting = ttsSettings.voices.find(v => v.lang === detectedLang);
       if (voiceSetting) {
         console.log('[TTS] 查找用户配置的音色 URI:', voiceSetting.voiceURI);
-        const selectedVoice = voices.find(v => v.voiceURI === voiceSetting.voiceURI);
+        selectedVoice = voices.find(v => v.voiceURI === voiceSetting.voiceURI) || null;
         if (selectedVoice) {
-          utterance.voice = selectedVoice;
-          utterance.lang = selectedVoice.lang;
           console.log('[TTS] ✓ 使用用户配置的音色:', selectedVoice.name, selectedVoice.lang);
         } else {
           console.warn('[TTS] ✗ 找不到用户配置的音色，尝试使用默认音色');
-          // 如果找不到配置的音色，使用默认
-          utterance.voice = selectDefaultVoice(detectedLang, voices);
-          console.log('[TTS] 使用默认音色:', utterance.voice?.name);
         }
-      } else {
-        console.log('[TTS] 用户未配置该语言的音色，使用默认音色');
-        utterance.voice = selectDefaultVoice(detectedLang, voices);
-        console.log('[TTS] 使用默认音色:', utterance.voice?.name);
       }
+    }
+
+    // 如果没有找到用户配置的音色，使用默认音色
+    if (!selectedVoice) {
+      console.log('[TTS] 使用默认音色');
+      selectedVoice = selectDefaultVoice(detectedLang, voices);
+    }
+
+    if (selectedVoice) {
+      utterance.voice = selectedVoice;
+      utterance.lang = selectedVoice.lang;
+      console.log('[TTS] ✓ 最终选择的音色:', selectedVoice.name, selectedVoice.lang, 'URI:', selectedVoice.voiceURI);
     } else {
-      // 没有配置，使用默认语音
-      const voices = speechSynthesisRef.current.getVoices();
-      console.log('[TTS] 可用语音数量:', voices.length);
-      utterance.voice = selectDefaultVoice(detectedLang, voices);
-      console.log('[TTS] 使用默认音色:', utterance.voice?.name);
+      console.warn('[TTS] ✗ 无法选择音色，将使用系统默认');
     }
 
     // 播放事件
@@ -358,12 +363,30 @@ export default function ChatPage() {
     };
 
     utterance.onerror = (event) => {
-      console.error('[TTS] 播放错误:', event.error);
+      console.error('[TTS] 播放错误:', event.error, '详情:', event);
+      console.error('[TTS] 当前音色:', utterance.voice?.name, utterance.voice?.lang);
+      console.error('[TTS] 文本长度:', plainText.length);
+      console.error('[TTS] 语言设置:', utterance.lang);
+
       setPlayingMessageIndex(null);
+
+      // 如果是因为音色问题导致失败，清除该语言的配置
+      if (event.error === 'synthesis-failed' && selectedVoice) {
+        console.warn('[TTS] 检测到 synthesis-failed 错误，清除缓存配置');
+        const newSettings = ttsSettings?.voices.filter(v => v.lang !== detectedLang) || [];
+        setTTSSettings({ voices: newSettings });
+        localStorage.removeItem('tts-voice-settings');
+      }
     };
 
     // 开始播放
-    speechSynthesisRef.current.speak(utterance);
+    try {
+      speechSynthesisRef.current.speak(utterance);
+      console.log('[TTS] 已发送播放请求');
+    } catch (error) {
+      console.error('[TTS] 播放请求失败:', error);
+      setPlayingMessageIndex(null);
+    }
   };
 
   // 下载 TTS 音频（使用 MediaRecorder）
@@ -380,6 +403,7 @@ export default function ChatPage() {
       .replace(/`/g, '')
       .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
       .replace(/!\[([^\]]*)\]\([^)]+\)/g, '')
+      .replace(/TTS>>/g, '') // 去除 TTS 前缀
       .replace(/\n+/g, ' ')
       .trim();
 
