@@ -52,20 +52,61 @@ export default function TTSSettings({ isOpen, onClose, onSettingsChange, current
         if (!hasInitializedDefaults && voices.length > 0) {
           const hasChineseConfig = voiceSettings.some(v => v.lang === 'zh');
           if (!hasChineseConfig) {
-            const xiaoxiaoOnline = voices.find(voice =>
+            console.log('[TTS] 开始查找默认中文音色...');
+
+            // 1. 尝试精确匹配 Xiaoxiao Online
+            let selectedVoice = voices.find(voice =>
               voice.lang.includes('zh') &&
               voice.name.toLowerCase().includes('xiaoxiao') &&
               voice.name.toLowerCase().includes('online')
             );
 
-            if (xiaoxiaoOnline) {
-              console.log('[TTS] 自动选择 Xiaoxiao Online 作为默认中文音色');
+            if (selectedVoice) {
+              console.log('[TTS] ✓ 找到 Xiaoxiao Online:', selectedVoice.name);
+            } else {
+              // 2. 尝试匹配 Xiaoxiao（不区分 Online）
+              selectedVoice = voices.find(voice =>
+                voice.lang.includes('zh') &&
+                voice.name.toLowerCase().includes('xiaoxiao')
+              );
+
+              if (selectedVoice) {
+                console.log('[TTS] ✓ 找到 Xiaoxiao:', selectedVoice.name);
+              } else {
+                // 3. 尝试匹配 Online 语音
+                selectedVoice = voices.find(voice =>
+                  voice.lang.includes('zh') &&
+                  voice.name.toLowerCase().includes('online')
+                );
+
+                if (selectedVoice) {
+                  console.log('[TTS] ✓ 找到 Online 语音:', selectedVoice.name);
+                } else {
+                  // 4. 回退到 Neural 语音
+                  selectedVoice = voices.find(voice =>
+                    voice.lang.includes('zh') &&
+                    voice.name.toLowerCase().includes('neural')
+                  );
+
+                  if (selectedVoice) {
+                    console.log('[TTS] ✓ 找到 Neural 语音:', selectedVoice.name);
+                  } else {
+                    // 5. 使用第一个中文语音
+                    selectedVoice = voices.find(voice => voice.lang.includes('zh'));
+                    console.log('[TTS] ✓ 使用第一个中文语音:', selectedVoice?.name);
+                  }
+                }
+              }
+            }
+
+            if (selectedVoice) {
+              console.log('[TTS] 自动选择音色作为默认中文音色:', selectedVoice.name);
               const newSettings = [
                 ...voiceSettings,
                 {
                   lang: 'zh',
-                  voiceURI: xiaoxiaoOnline.voiceURI,
-                  voiceName: xiaoxiaoOnline.name,
+                  voiceURI: selectedVoice.voiceURI,
+                  voiceName: selectedVoice.name,
                 }
               ];
               setVoiceSettings(newSettings);
