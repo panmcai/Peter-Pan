@@ -20,7 +20,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: '你好！我是 Peter·Pan 的 AI 助手。我可以帮助你回答问题、提供信息或者只是聊聊天。\n\n💡 你可以通过右上角的「设置」按钮配置自己的大模型，默认由 GLM-4.7-Flash 模型为你提供服务。\n\n🎨 **文生图功能**：选择「CogView-3-Flash」模型，我可以根据你的描述生成图片！\n\n🎬 **文生视频功能**：选择「CogVideoX-Flash」模型，我可以根据你的描述生成视频！生成的视频会包含同步的 AI 音效（语音、音效和背景音乐）。\n\n🔊 **TTS 语音朗读功能**：\n- 点击消息旁的「朗读」按钮，使用浏览器本地语音合成朗读内容\n- 点击右上角的「语音」按钮，可以为不同语言配置专属音色\n- 系统会根据消息内容自动检测语言，并使用对应语言的音色\n- 点击「下载」按钮可以导出音频（需要使用系统录音工具辅助）\n\n📝 **视频时长说明**：目前 CogVideoX-Flash 模型支持的视频时长约为 **6-10 秒**，不支持生成更长的视频。如果你需要更长的视频，建议分段生成或使用其他专业视频工具。\n\n🎵 **音频生成提示**：为了获得更好的音频效果，建议在描述中明确包含声音相关的提示，例如：\n- "一个人说：\'你好！\'"（人类对话）\n- "热闹的街道，汽车喇叭声、行人交谈声"（环境音效）\n- "轻柔的背景音乐，营造温馨氛围"（背景音乐）\n\n⚠️ **注意事项**：\n- 音频生成主要针对人类语音和环境音效，对动物叫声的支持有限\n- 视频时长受模型限制，一般为 6-10 秒',
+      content: '你好！我是 Peter·Pan 的 AI 助手。我可以帮助你回答问题、提供信息或者只是聊聊天。\n\n💡 你可以通过右上角的「设置」按钮配置自己的大模型，默认由 glm-4.7-flash 模型为你提供服务。\n\n🎨 **文生图功能**：选择「CogView-3-Flash」模型，我可以根据你的描述生成图片！\n\n🎬 **文生视频功能**：选择「CogVideoX-Flash」模型，我可以根据你的描述生成视频！生成的视频会包含同步的 AI 音效（语音、音效和背景音乐）。\n\n🔊 **TTS 语音朗读功能**：\n- 点击消息旁的「朗读」按钮，使用浏览器本地语音合成朗读内容\n- 点击右上角的「语音」按钮，可以为不同语言配置专属音色\n- 系统会根据消息内容自动检测语言，并使用对应语言的音色\n- 点击「下载」按钮可以导出音频（需要使用系统录音工具辅助）\n- ℹ️ 不同设备支持的音色不同，桌面端（如 Edge 浏览器）提供「Xiaoxiao Online」等高质量云端音色，手机端则使用系统内置音色（如「婷婷」），系统会自动选择可用音色\n\n📝 **视频时长说明**：目前 CogVideoX-Flash 模型支持的视频时长约为 **6-10 秒**，不支持生成更长的视频。如果你需要更长的视频，建议分段生成或使用其他专业视频工具。\n\n🎵 **音频生成提示**：为了获得更好的音频效果，建议在描述中明确包含声音相关的提示，例如：\n- "一个人说：\'你好！\'"（人类对话）\n- "热闹的街道，汽车喇叭声、行人交谈声"（环境音效）\n- "轻柔的背景音乐，营造温馨氛围"（背景音乐）\n\n⚠️ **注意事项**：\n- 音频生成主要针对人类语音和环境音效，对动物叫声的支持有限\n- 视频时长受模型限制，一般为 6-10 秒',
       timestamp: new Date(),
     },
   ]);
@@ -217,52 +217,78 @@ export default function ChatPage() {
       return voices[0] || null;
     }
 
-    // 中文优先选择 Xiaoxiao Online
+    // 中文优先选择高质量音色
     if (lang === 'zh') {
-      // 1. 尝试精确匹配 "Xiaoxiao Online"
-      const xiaoxiaoOnline = langVoices.find(voice =>
-        voice.name.toLowerCase().includes('xiaoxiao') &&
-        voice.name.toLowerCase().includes('online')
-      );
+      console.log('[TTS] 中文语音列表:', langVoices.map(v => v.name).join(', '));
 
-      if (xiaoxiaoOnline) {
-        console.log('[TTS] 找到 Xiaoxiao Online:', xiaoxiaoOnline.name);
-        return xiaoxiaoOnline;
+      // 1. 优先匹配 Online 语音（桌面端高质量）
+      const onlineVoiceNames = [
+        'xiaoxiao online', 'yaoyao online', 'yunyang online', 'yunxi online'
+      ];
+      for (const name of onlineVoiceNames) {
+        const voice = langVoices.find(v =>
+          v.name.toLowerCase().includes(name)
+        );
+        if (voice) {
+          console.log('[TTS] 找到 Online 语音:', voice.name);
+          return voice;
+        }
       }
 
-      // 2. 尝试匹配 Xiaoxiao（不区分 Online）
-      const xiaoxiao = langVoices.find(voice =>
-        voice.name.toLowerCase().includes('xiaoxiao')
-      );
-
-      if (xiaoxiao) {
-        console.log('[TTS] 找到 Xiaoxiao:', xiaoxiao.name);
-        return xiaoxiao;
+      // 2. 匹配 Neural 语音
+      const neuralVoiceNames = [
+        'xiaoxiaoneural', 'yaoyaoneural', 'yunyangneural', 'yunxineural',
+        'xiaoyineural', 'jianhaoneural', 'xiaochenneural', 'xiaomengneural'
+      ];
+      for (const name of neuralVoiceNames) {
+        const voice = langVoices.find(v =>
+          v.name.toLowerCase().includes(name)
+        );
+        if (voice) {
+          console.log('[TTS] 找到 Neural 语音:', voice.name);
+          return voice;
+        }
       }
 
-      // 3. 尝试匹配 Online 语音
-      const onlineVoice = langVoices.find(voice =>
-        voice.name.toLowerCase().includes('online')
-      );
-
-      if (onlineVoice) {
-        console.log('[TTS] 找到 Online 语音:', onlineVoice.name);
-        return onlineVoice;
+      // 3. 匹配常见中文名称（手机端）
+      const mobileVoiceNames = [
+        '婷婷', '晓晓', '姚姚', '云扬', '云希', '晓伊', '建豪', '晓辰', '晓梦',
+        'xiao xiao', 'yao yao', 'yun yang', 'yun xi'
+      ];
+      for (const name of mobileVoiceNames) {
+        const voice = langVoices.find(v =>
+          v.name.toLowerCase().includes(name.toLowerCase())
+        );
+        if (voice) {
+          console.log('[TTS] 找到常见中文语音:', voice.name);
+          return voice;
+        }
       }
 
-      // 4. 回退到 Neural 语音
-      const neuralVoice = langVoices.find(voice =>
-        voice.name.toLowerCase().includes('neural')
-      );
+      // 4. 按地区优先级选择：中国大陆 > 香港 > 台湾 > 其他
+      const getRegionPriority = (lang: string) => {
+        const region = lang.split('-')[1]?.toUpperCase();
+        switch (region) {
+          case 'CN': return 1;
+          case 'HK': return 2;
+          case 'TW': return 3;
+          default: return 4;
+        }
+      };
 
-      if (neuralVoice) {
-        console.log('[TTS] 找到 Neural 语音:', neuralVoice.name);
-        return neuralVoice;
-      }
+      const sortedVoices = [...langVoices].sort((a, b) => {
+        const priorityA = getRegionPriority(a.lang);
+        const priorityB = getRegionPriority(b.lang);
 
-      // 5. 使用第一个中文语音
-      console.log('[TTS] 使用第一个中文语音:', langVoices[0].name);
-      return langVoices[0] || null;
+        if (priorityA !== priorityB) {
+          return priorityA - priorityB;
+        }
+
+        return a.name.localeCompare(b.name);
+      });
+
+      console.log('[TTS] 按优先级选择语音:', sortedVoices[0].name);
+      return sortedVoices[0] || null;
     }
 
     // 其他语言优先选择 Neural
@@ -595,51 +621,21 @@ export default function ChatPage() {
 
       apiMessages.push({ role: 'user', content: input });
 
-      let response: Response;
-
-      // 判断是智谱 AI 还是其他模型
-      if (provider === 'zhipu') {
-        // 智谱 AI
-        const zhipuRequestBody = {
+      // 调用本地 API Route，由服务端代理调用智谱 API
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          provider: provider,
           model: modelName,
+          baseUrl: modelConfig.baseUrl,
           messages: apiMessages,
-          stream: true,
-        };
-
-        // 检查是否有自定义 API Key
-        const apiKey = modelConfig.apiKey || process.env.NEXT_PUBLIC_ZHIPU_API_KEY;
-
-        if (!apiKey) {
-          throw new Error('未配置 API Key');
-        }
-
-        response = await fetch(modelConfig.baseUrl + '/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify(zhipuRequestBody),
-          signal: abortController.signal,
-        });
-      } else {
-        // OpenAI 兼容格式
-        const requestBody = {
-          model: modelName,
-          messages: apiMessages,
-          stream: true,
-        };
-
-        response = await fetch(modelConfig.baseUrl + '/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${modelConfig.apiKey}`,
-          },
-          body: JSON.stringify(requestBody),
-          signal: abortController.signal,
-        });
-      }
+          apiKey: modelConfig.apiKey, // 传递用户自定义的 API Key
+        }),
+        signal: abortController.signal,
+      });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -663,6 +659,7 @@ export default function ChatPage() {
       setMessages((prev) => [...prev, assistantMessage]);
 
       let buffer = '';
+      let assistantContent = ''; // 使用局部变量累加内容
 
       while (true) {
         const { done, value } = await reader.read();
@@ -683,14 +680,20 @@ export default function ChatPage() {
 
             try {
               const json = JSON.parse(data);
-              const content = json.choices?.[0]?.delta?.content || '';
+              // 处理不同模型的响应字段
+              // glm-4.7-flash 使用 reasoning_content，其他模型使用 content
+              const content = json.choices?.[0]?.delta?.reasoning_content || json.choices?.[0]?.delta?.content || '';
 
               if (content) {
+                // 累加内容到局部变量
+                assistantContent += content;
+                
+                // 更新最后一个消息的内容
                 setMessages((prev) => {
                   const updated = [...prev];
                   const lastMessage = updated[updated.length - 1];
                   if (lastMessage && lastMessage.role === 'assistant') {
-                    lastMessage.content += content;
+                    lastMessage.content = assistantContent;
                   }
                   return updated;
                 });
