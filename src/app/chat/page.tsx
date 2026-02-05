@@ -1,7 +1,26 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader2, Sparkles, Clock, Trash2, Settings, AlertCircle, Download, Image as ImageIcon, ExternalLink, Video as VideoIcon, Square, Volume2, VolumeX, DownloadCloud, Headphones } from 'lucide-react';
+import {
+  Send,
+  Bot,
+  User,
+  Loader2,
+  Sparkles,
+  Clock,
+  Trash2,
+  Settings,
+  AlertCircle,
+  Download,
+  Image as ImageIcon,
+  ExternalLink,
+  Video as VideoIcon,
+  Square,
+  Volume2,
+  VolumeX,
+  DownloadCloud,
+  Headphones,
+} from 'lucide-react';
 import ModelConfig, { AIModelConfig } from '@/components/ModelConfig';
 import TTSSettings, { TTSSettings as TTSSettingsType } from '@/components/TTSSettings';
 import ReactMarkdown from 'react-markdown';
@@ -21,7 +40,8 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: '你好！我是 Peter·Pan 的 AI 助手。我可以帮助你回答问题、提供信息或者只是聊聊天。\n\n💡 你可以通过右上角的「设置」按钮配置自己的大模型，默认由 glm-4.7-flash 模型为你提供服务。\n\n🎨 **文生图功能**：选择「CogView-3-Flash」模型，我可以根据你的描述生成图片！\n\n🎬 **文生视频功能**：选择「CogVideoX-Flash」模型，我可以根据你的描述生成视频！生成的视频会包含同步的 AI 音效（语音、音效和背景音乐）。\n\n🔊 **TTS 语音朗读功能**：\n- 点击消息旁的「朗读」按钮，使用浏览器本地语音合成朗读内容\n- 点击右上角的「语音」按钮，可以为不同语言配置专属音色\n- 系统会根据消息内容自动检测语言，并使用对应语言的音色\n- 点击「下载」按钮可以导出音频（需要使用系统录音工具辅助）\n- ℹ️ 不同设备支持的音色不同，桌面端（如 Edge 浏览器）提供「Xiaoxiao Online」等高质量云端音色，手机端则使用系统内置音色（如「婷婷」），系统会自动选择可用音色\n\n📝 **视频时长说明**：目前 CogVideoX-Flash 模型支持的视频时长约为 **6-10 秒**，不支持生成更长的视频。如果你需要更长的视频，建议分段生成或使用其他专业视频工具。\n\n🎵 **音频生成提示**：为了获得更好的音频效果，建议在描述中明确包含声音相关的提示，例如：\n- "一个人说：\'你好！\'"（人类对话）\n- "热闹的街道，汽车喇叭声、行人交谈声"（环境音效）\n- "轻柔的背景音乐，营造温馨氛围"（背景音乐）\n\n⚠️ **注意事项**：\n- 音频生成主要针对人类语音和环境音效，对动物叫声的支持有限\n- 视频时长受模型限制，一般为 6-10 秒',
+      content:
+        '你好！我是 Peter·Pan 的 AI 助手。我可以帮助你回答问题、提供信息或进行创作。\n\n💡 **默认配置**：系统默认使用智谱AI的 glm-4.7-flash 模型，你无需手动配置。\n\n🧠 **深度思考**：点击左侧「深度思考」按钮，AI 会展示详细的推理过程，帮助你理解答案背后的逻辑。\n\n🌐 **联网搜索**：点击左侧「联网搜索」按钮，AI 会先搜索最新信息，确保回答的时效性和准确性。\n\n🎨 **文生图**：选择 CogView-3-Flash 模型，根据你的描述生成精美的图片！\n\n🎬 **文生视频**：选择 CogVideoX-Flash 模型，生成 6-10 秒的短视频，包含同步的语音、音效和背景音乐。\n\n🔊 **TTS 朗读**：点击消息旁的「朗读」按钮，使用浏览器语音合成功能自动朗读内容。你也可以在右上角配置专属音色。\n\n📝 **视频时长**：CogVideoX-Flash 模型生成的视频时长约为 6-10 秒，建议分段描述以获得更好的效果。',
       timestamp: new Date(),
     },
   ]);
@@ -34,13 +54,17 @@ export default function ChatPage() {
   const [webSearch, setWebSearch] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const initialMessageCountRef = useRef<number>(1); // 初始有1条欢迎消息
+  const lastMessageIndexRef = useRef<number | undefined>(undefined); // 用于跟踪最后一条助手消息索引
   const abortControllerRef = useRef<AbortController | null>(null); // 用于中断请求
 
   // TTS 相关状态
   const [playingMessageIndex, setPlayingMessageIndex] = useState<number | null>(null);
   const [downloadingMessageIndex, setDownloadingMessageIndex] = useState<number | null>(null);
-  const speechSynthesisRef = useRef<SpeechSynthesis | null>(typeof window !== 'undefined' ? window.speechSynthesis : null);
+  const speechSynthesisRef = useRef<SpeechSynthesis | null>(
+    typeof window !== 'undefined' ? window.speechSynthesis : null
+  );
   const [showTTSSettings, setShowTTSSettings] = useState(false);
   const [ttsSettings, setTTSSettings] = useState<TTSSettingsType | undefined>();
   const [voicesLoaded, setVoicesLoaded] = useState(false);
@@ -121,13 +145,31 @@ export default function ChatPage() {
     }
   };
 
-  // 从 localStorage 加载配置
+  // 从 localStorage 加载配置，如果没有配置则使用默认配置
   useEffect(() => {
     try {
       const saved = localStorage.getItem('current-model-config');
       if (saved) {
-        setModelConfig(JSON.parse(saved));
+        const config = JSON.parse(saved);
+        setModelConfig(config);
+        console.log('[Chat] 从 localStorage 加载配置:', config);
+        return;
       }
+
+      // 使用默认配置：智谱AI，glm-4.7-flash，使用环境变量中的API Key
+      const defaultConfig: AIModelConfig = {
+        provider: 'zhipu',
+        name: '智谱 AI',
+        apiKey: '', // 客户端不直接使用API Key，由后端从环境变量获取
+        baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+        models: ['glm-4.7-flash'],
+        enabled: true,
+      };
+
+      // 保存到 localStorage
+      localStorage.setItem('current-model-config', JSON.stringify(defaultConfig));
+      setModelConfig(defaultConfig);
+      console.log('[Chat] 使用默认配置: 智谱AI glm-4.7-flash，API Key 将由后端从环境变量获取');
     } catch (error) {
       console.error('[Chat] 加载模型配置失败:', error);
     }
@@ -159,6 +201,11 @@ export default function ChatPage() {
       localStorage.setItem('current-model-config', JSON.stringify(modelConfig));
     }
   }, [modelConfig]);
+
+  // 自动聚焦输入框
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, [messages.length]);
 
   // 自动滚动到底部（只在有新消息时）
   const scrollToBottom = () => {
@@ -204,7 +251,10 @@ export default function ChatPage() {
   };
 
   // 选择默认音色
-  const selectDefaultVoice = (lang: string, voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null => {
+  const selectDefaultVoice = (
+    lang: string,
+    voices: SpeechSynthesisVoice[]
+  ): SpeechSynthesisVoice | null => {
     if (!voices.length) {
       console.warn('[TTS] 没有可用的语音');
       return null;
@@ -224,12 +274,13 @@ export default function ChatPage() {
 
       // 1. 优先匹配 Online 语音（桌面端高质量）
       const onlineVoiceNames = [
-        'xiaoxiao online', 'yaoyao online', 'yunyang online', 'yunxi online'
+        'xiaoxiao online',
+        'yaoyao online',
+        'yunyang online',
+        'yunxi online',
       ];
       for (const name of onlineVoiceNames) {
-        const voice = langVoices.find(v =>
-          v.name.toLowerCase().includes(name)
-        );
+        const voice = langVoices.find(v => v.name.toLowerCase().includes(name));
         if (voice) {
           console.log('[TTS] 找到 Online 语音:', voice.name);
           return voice;
@@ -238,13 +289,17 @@ export default function ChatPage() {
 
       // 2. 匹配 Neural 语音
       const neuralVoiceNames = [
-        'xiaoxiaoneural', 'yaoyaoneural', 'yunyangneural', 'yunxineural',
-        'xiaoyineural', 'jianhaoneural', 'xiaochenneural', 'xiaomengneural'
+        'xiaoxiaoneural',
+        'yaoyaoneural',
+        'yunyangneural',
+        'yunxineural',
+        'xiaoyineural',
+        'jianhaoneural',
+        'xiaochenneural',
+        'xiaomengneural',
       ];
       for (const name of neuralVoiceNames) {
-        const voice = langVoices.find(v =>
-          v.name.toLowerCase().includes(name)
-        );
+        const voice = langVoices.find(v => v.name.toLowerCase().includes(name));
         if (voice) {
           console.log('[TTS] 找到 Neural 语音:', voice.name);
           return voice;
@@ -253,13 +308,22 @@ export default function ChatPage() {
 
       // 3. 匹配常见中文名称（手机端）
       const mobileVoiceNames = [
-        '婷婷', '晓晓', '姚姚', '云扬', '云希', '晓伊', '建豪', '晓辰', '晓梦',
-        'xiao xiao', 'yao yao', 'yun yang', 'yun xi'
+        '婷婷',
+        '晓晓',
+        '姚姚',
+        '云扬',
+        '云希',
+        '晓伊',
+        '建豪',
+        '晓辰',
+        '晓梦',
+        'xiao xiao',
+        'yao yao',
+        'yun yang',
+        'yun xi',
       ];
       for (const name of mobileVoiceNames) {
-        const voice = langVoices.find(v =>
-          v.name.toLowerCase().includes(name.toLowerCase())
-        );
+        const voice = langVoices.find(v => v.name.toLowerCase().includes(name.toLowerCase()));
         if (voice) {
           console.log('[TTS] 找到常见中文语音:', voice.name);
           return voice;
@@ -270,10 +334,14 @@ export default function ChatPage() {
       const getRegionPriority = (lang: string) => {
         const region = lang.split('-')[1]?.toUpperCase();
         switch (region) {
-          case 'CN': return 1;
-          case 'HK': return 2;
-          case 'TW': return 3;
-          default: return 4;
+          case 'CN':
+            return 1;
+          case 'HK':
+            return 2;
+          case 'TW':
+            return 3;
+          default:
+            return 4;
         }
       };
 
@@ -293,9 +361,7 @@ export default function ChatPage() {
     }
 
     // 其他语言优先选择 Neural
-    const neuralVoice = langVoices.find(voice =>
-      voice.name.toLowerCase().includes('neural')
-    );
+    const neuralVoice = langVoices.find(voice => voice.name.toLowerCase().includes('neural'));
 
     if (neuralVoice) {
       console.log('[TTS] 找到 Neural 语音:', neuralVoice.name);
@@ -376,12 +442,33 @@ export default function ChatPage() {
       // 查找用户为该语言配置的音色
       const voiceSetting = ttsSettings.voices.find(v => v.lang === detectedLang);
       if (voiceSetting) {
-        console.log('[TTS] 查找用户配置的音色 URI:', voiceSetting.voiceURI);
+        console.log('[TTS] 查找用户配置的音色:', voiceSetting.voiceName, voiceSetting.voiceURI);
+
+        // 优先使用 voiceURI 精确匹配
         selectedVoice = voices.find(v => v.voiceURI === voiceSetting.voiceURI) || null;
         if (selectedVoice) {
-          console.log('[TTS] ✓ 使用用户配置的音色:', selectedVoice.name, selectedVoice.lang);
+          console.log(
+            '[TTS] ✓ 使用用户配置的音色 (通过 voiceURI):',
+            selectedVoice.name,
+            selectedVoice.lang
+          );
         } else {
-          console.warn('[TTS] ✗ 找不到用户配置的音色，尝试使用默认音色');
+          // 如果找不到，使用 voiceName 匹配（模糊匹配）
+          selectedVoice = voices.find(v => v.name.includes(voiceSetting.voiceName)) || null;
+          if (selectedVoice) {
+            console.log(
+              '[TTS] ✓ 使用用户配置的音色 (通过 voiceName):',
+              selectedVoice.name,
+              selectedVoice.lang
+            );
+          } else {
+            console.warn(
+              '[TTS] ✗ 找不到用户配置的音色:',
+              voiceSetting.voiceName,
+              voiceSetting.voiceURI,
+              '尝试使用默认音色'
+            );
+          }
         }
       }
     }
@@ -395,7 +482,13 @@ export default function ChatPage() {
     if (selectedVoice) {
       utterance.voice = selectedVoice;
       utterance.lang = selectedVoice.lang;
-      console.log('[TTS] ✓ 最终选择的音色:', selectedVoice.name, selectedVoice.lang, 'URI:', selectedVoice.voiceURI);
+      console.log(
+        '[TTS] ✓ 最终选择的音色:',
+        selectedVoice.name,
+        selectedVoice.lang,
+        'URI:',
+        selectedVoice.voiceURI
+      );
     } else {
       console.warn('[TTS] ✗ 无法选择音色，将使用系统默认');
     }
@@ -411,7 +504,7 @@ export default function ChatPage() {
       console.log('[TTS] 播放结束');
     };
 
-    utterance.onerror = (event) => {
+    utterance.onerror = event => {
       console.error('[TTS] 播放错误:', event.error, '详情:', event);
       console.error('[TTS] 当前音色:', utterance.voice?.name, utterance.voice?.lang);
       console.error('[TTS] 文本长度:', plainText.length);
@@ -495,8 +588,8 @@ export default function ChatPage() {
           utterance.lang = selectedVoice.lang;
         }
       } else {
-        const defaultVoice = voices.find(voice =>
-          voice.lang.startsWith(detectedLang) && voice.name.includes('Neural')
+        const defaultVoice = voices.find(
+          voice => voice.lang.startsWith(detectedLang) && voice.name.includes('Neural')
         );
         if (defaultVoice) {
           utterance.voice = defaultVoice;
@@ -509,12 +602,12 @@ export default function ChatPage() {
 
       alert(
         '⚠️ 音频下载功能说明\n\n' +
-        '由于浏览器安全限制，无法直接录制 TTS 语音合成输出。\n\n' +
-        '变通方案：\n' +
-        '1. 点击「朗读」按钮播放语音\n' +
-        '2. 使用系统录音工具（如 Windows 录音机、Mac QuickTime）录制\n' +
-        '3. 或者使用第三方 TTS 服务（需要后端支持）\n\n' +
-        '抱歉给您带来不便！'
+          '由于浏览器安全限制，无法直接录制 TTS 语音合成输出。\n\n' +
+          '变通方案：\n' +
+          '1. 点击「朗读」按钮播放语音\n' +
+          '2. 使用系统录音工具（如 Windows 录音机、Mac QuickTime）录制\n' +
+          '3. 或者使用第三方 TTS 服务（需要后端支持）\n\n' +
+          '抱歉给您带来不便！'
       );
 
       setDownloadingMessageIndex(null);
@@ -567,7 +660,7 @@ export default function ChatPage() {
       };
 
       // 添加消息后播放
-      setMessages((prev) => {
+      setMessages(prev => {
         const newMessages = [...prev, userMessage];
         const newIndex = newMessages.length - 1;
         setInput('');
@@ -600,7 +693,7 @@ export default function ChatPage() {
       timestamp: new Date(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    setMessages(prev => [...prev, userMessage]);
     setInput('');
     setLoading(true);
     setError(null);
@@ -613,12 +706,10 @@ export default function ChatPage() {
       const modelName = modelConfig.models[0];
 
       // 构建请求消息
-      const apiMessages = messages
-        .slice(initialMessageCountRef.current)
-        .map((msg) => ({
-          role: msg.role === 'system' ? 'system' : msg.role,
-          content: msg.content,
-        }));
+      const apiMessages = messages.slice(initialMessageCountRef.current).map(msg => ({
+        role: msg.role === 'system' ? 'system' : msg.role,
+        content: msg.content,
+      }));
 
       apiMessages.push({ role: 'user', content: input });
 
@@ -634,6 +725,8 @@ export default function ChatPage() {
           baseUrl: modelConfig.baseUrl,
           messages: apiMessages,
           apiKey: modelConfig.apiKey, // 传递用户自定义的 API Key
+          deepThink: deepThink, // 传递深度思考参数
+          webSearch: webSearch, // 传递联网搜索参数
         }),
         signal: abortController.signal,
       });
@@ -658,7 +751,7 @@ export default function ChatPage() {
         timestamp: new Date(),
       };
 
-      setMessages((prev) => [...prev, assistantMessage]);
+      setMessages(prev => [...prev, assistantMessage]);
 
       let buffer = '';
       let assistantContent = ''; // 回答内容
@@ -697,12 +790,17 @@ export default function ChatPage() {
 
               // 如果有内容更新，更新最后一个消息
               if (delta.reasoning_content || delta.content) {
-                setMessages((prev) => {
+                setMessages(prev => {
                   const updated = [...prev];
                   const lastMessage = updated[updated.length - 1];
                   if (lastMessage && lastMessage.role === 'assistant') {
                     lastMessage.reasoningContent = reasoningContent;
                     lastMessage.content = assistantContent;
+
+                    // 如果有回答内容，标记为需要自动播放语音
+                    if (assistantContent.length > 0 && lastMessageIndexRef.current === undefined) {
+                      lastMessageIndexRef.current = updated.length - 1;
+                    }
                   }
                   return updated;
                 });
@@ -725,6 +823,27 @@ export default function ChatPage() {
     } finally {
       setLoading(false);
       abortControllerRef.current = null;
+
+      // 如果是新回复的消息，自动播放语音
+      if (
+        lastMessageIndexRef.current !== undefined &&
+        lastMessageIndexRef.current < messages.length
+      ) {
+        const lastMessage = messages[lastMessageIndexRef.current];
+        if (
+          lastMessage.role === 'assistant' &&
+          lastMessage.content &&
+          lastMessage.content.length > 0
+        ) {
+          // 延迟一下，等待消息完全更新
+          setTimeout(() => {
+            if (lastMessageIndexRef.current !== undefined) {
+              playTTS(lastMessage.content, lastMessageIndexRef.current);
+              lastMessageIndexRef.current = undefined; // 重置标记
+            }
+          }, 500);
+        }
+      }
     }
   };
 
@@ -869,20 +988,17 @@ export default function ChatPage() {
         <div className="max-w-5xl mx-auto px-4 py-8">
           <div className="space-y-6">
             {messages.map((message, index) => (
-              <div
-                key={index}
-                className={`flex gap-4 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
+              <div key={index} className="flex gap-4 justify-center">
                 {message.role === 'assistant' && (
                   <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-600/20 dark:shadow-blue-600/40">
                     <Bot className="w-6 h-6 text-white" />
                   </div>
                 )}
                 <div
-                  className={`w-full max-w-full rounded-2xl shadow-sm ${
+                  className={`mx-auto w-full rounded-2xl shadow-sm ${
                     message.role === 'user'
                       ? 'bg-gradient-to-br from-sky-50 to-sky-100 text-sky-950 shadow-sky-100/20 px-5 py-4'
-                      : 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700'
+                      : 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 px-6 py-5'
                   }`}
                 >
                   {/* 用户消息标题栏 */}
@@ -890,7 +1006,9 @@ export default function ChatPage() {
                     <div className="flex items-center justify-between mb-3 pb-3 border-b border-sky-200 dark:border-sky-700">
                       <div className="flex items-center gap-2">
                         <User className="w-4 h-4 text-sky-600" />
-                        <span className="text-xs font-medium text-sky-800 dark:text-sky-400">你</span>
+                        <span className="text-xs font-medium text-sky-800 dark:text-sky-400">
+                          你
+                        </span>
                       </div>
                       {message.content && (
                         <div className="flex items-center gap-2">
@@ -934,7 +1052,9 @@ export default function ChatPage() {
                     <div className="flex items-center justify-between mb-3 pb-3 border-b border-zinc-200 dark:border-zinc-700">
                       <div className="flex items-center gap-2">
                         <Bot className="w-4 h-4 text-blue-600" />
-                        <span className="text-xs font-medium text-zinc-600 dark:text-zinc-400">AI 助手</span>
+                        <span className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                          AI 助手
+                        </span>
                       </div>
                       {message.content && (
                         <div className="flex items-center gap-2">
@@ -973,14 +1093,18 @@ export default function ChatPage() {
                     </div>
                   )}
 
-                  <div className="leading-relaxed text-sm sm:text-base text-zinc-900 dark:text-zinc-100 max-w-none">
-                    {message.role === 'assistant' && message.type === 'video' && message.videoUrl ? (
+                  <div className="leading-relaxed text-sm sm:text-base text-zinc-900 dark:text-zinc-100 max-w-[90%]">
+                    {message.role === 'assistant' &&
+                    message.type === 'video' &&
+                    message.videoUrl ? (
                       <div className="space-y-4">
                         <ReactMarkdown
                           remarkPlugins={[remarkGfm]}
                           components={{
                             p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
-                            strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+                            strong: ({ children }) => (
+                              <strong className="font-bold">{children}</strong>
+                            ),
                           }}
                         >
                           {message.content}
@@ -993,7 +1117,9 @@ export default function ChatPage() {
                           />
                           <div className="flex items-center gap-2 mt-3">
                             <button
-                              onClick={() => message.videoUrl && window.open(message.videoUrl, '_blank')}
+                              onClick={() =>
+                                message.videoUrl && window.open(message.videoUrl, '_blank')
+                              }
                               className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                               disabled={!message.videoUrl}
                             >
@@ -1001,7 +1127,10 @@ export default function ChatPage() {
                               <span>在新标签页打开</span>
                             </button>
                             <button
-                              onClick={() => message.videoUrl && downloadVideo(message.videoUrl, `generated-video-${Date.now()}.mp4`)}
+                              onClick={() =>
+                                message.videoUrl &&
+                                downloadVideo(message.videoUrl, `generated-video-${Date.now()}.mp4`)
+                              }
                               className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                               disabled={!message.videoUrl}
                             >
@@ -1011,13 +1140,17 @@ export default function ChatPage() {
                           </div>
                         </div>
                       </div>
-                    ) : message.role === 'assistant' && message.type === 'image' && message.imageUrl ? (
+                    ) : message.role === 'assistant' &&
+                      message.type === 'image' &&
+                      message.imageUrl ? (
                       <div className="space-y-4">
                         <ReactMarkdown
                           remarkPlugins={[remarkGfm]}
                           components={{
                             p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
-                            strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+                            strong: ({ children }) => (
+                              <strong className="font-bold">{children}</strong>
+                            ),
                           }}
                         >
                           {message.content}
@@ -1027,11 +1160,15 @@ export default function ChatPage() {
                             src={message.imageUrl}
                             alt="Generated image"
                             className="w-full rounded-lg shadow-lg cursor-pointer hover:opacity-90 transition-opacity"
-                            onClick={() => message.imageUrl && window.open(message.imageUrl, '_blank')}
+                            onClick={() =>
+                              message.imageUrl && window.open(message.imageUrl, '_blank')
+                            }
                           />
                           <div className="flex items-center gap-2 mt-3">
                             <button
-                              onClick={() => message.imageUrl && window.open(message.imageUrl, '_blank')}
+                              onClick={() =>
+                                message.imageUrl && window.open(message.imageUrl, '_blank')
+                              }
                               className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                               disabled={!message.imageUrl}
                             >
@@ -1039,7 +1176,10 @@ export default function ChatPage() {
                               <span>在新标签页打开</span>
                             </button>
                             <button
-                              onClick={() => message.imageUrl && downloadImage(message.imageUrl, `generated-image-${Date.now()}.png`)}
+                              onClick={() =>
+                                message.imageUrl &&
+                                downloadImage(message.imageUrl, `generated-image-${Date.now()}.png`)
+                              }
                               className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                               disabled={!message.imageUrl}
                             >
@@ -1056,11 +1196,72 @@ export default function ChatPage() {
                           <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
                             <div className="flex items-center gap-2 mb-2 pb-2 border-b border-amber-200 dark:border-amber-800">
                               <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                              <span className="text-sm font-semibold text-amber-800 dark:text-amber-200">💭 思考过程</span>
+                              <span className="text-sm font-semibold text-amber-800 dark:text-amber-200">
+                                💭 思考过程
+                              </span>
                             </div>
-                            <div className="text-sm text-amber-900 dark:text-amber-100 whitespace-pre-wrap">
+                            <ReactMarkdown
+                              remarkPlugins={[remarkGfm]}
+                              components={{
+                                p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
+                                h1: ({ children }) => (
+                                  <h1 className="text-xl font-bold mb-3">{children}</h1>
+                                ),
+                                h2: ({ children }) => (
+                                  <h2 className="text-lg font-bold mb-2">{children}</h2>
+                                ),
+                                h3: ({ children }) => (
+                                  <h3 className="text-base font-bold mb-2">{children}</h3>
+                                ),
+                                ul: ({ children }) => (
+                                  <ul className="list-disc list-inside mb-3">{children}</ul>
+                                ),
+                                ol: ({ children }) => (
+                                  <ol className="list-decimal list-inside mb-3">{children}</ol>
+                                ),
+                                li: ({ children }) => <li className="mb-1">{children}</li>,
+                                code: ({ className, children, ...props }: any) => {
+                                  const isInline = !className;
+                                  return isInline ? (
+                                    <code
+                                      className="bg-amber-100 dark:bg-amber-900/50 px-1.5 py-0.5 rounded text-xs font-mono"
+                                      {...props}
+                                    >
+                                      {children}
+                                    </code>
+                                  ) : (
+                                    <code
+                                      className="block bg-amber-100 dark:bg-amber-900/50 px-3 py-2 rounded-lg text-xs font-mono overflow-x-auto mb-3"
+                                      {...props}
+                                    >
+                                      {children}
+                                    </code>
+                                  );
+                                },
+                                pre: ({ children }) => (
+                                  <pre className="bg-amber-100 dark:bg-amber-900/50 p-3 rounded-lg overflow-x-auto mb-3">
+                                    {children}
+                                  </pre>
+                                ),
+                                blockquote: ({ children }) => (
+                                  <blockquote className="border-l-4 border-amber-300 dark:border-amber-700 pl-3 italic mb-3">
+                                    {children}
+                                  </blockquote>
+                                ),
+                                a: ({ href, children }) => (
+                                  <a
+                                    href={href}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-amber-600 dark:text-amber-400 hover:underline"
+                                  >
+                                    {children}
+                                  </a>
+                                ),
+                              }}
+                            >
                               {message.reasoningContent}
-                            </div>
+                            </ReactMarkdown>
                           </div>
                         )}
 
@@ -1070,7 +1271,9 @@ export default function ChatPage() {
                             {message.reasoningContent && (
                               <div className="flex items-center gap-2 mb-2 pb-2 border-b border-zinc-200 dark:border-zinc-700">
                                 <Bot className="w-4 h-4 text-blue-600" />
-                                <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">📝 回答</span>
+                                <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+                                  📝 回答
+                                </span>
                               </div>
                             )}
                             <ReactMarkdown
@@ -1078,36 +1281,63 @@ export default function ChatPage() {
                               components={{
                                 // 自定义样式
                                 p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
-                                h1: ({ children }) => <h1 className="text-xl font-bold mb-3">{children}</h1>,
-                                h2: ({ children }) => <h2 className="text-lg font-bold mb-2">{children}</h2>,
-                                h3: ({ children }) => <h3 className="text-base font-bold mb-2">{children}</h3>,
-                                ul: ({ children }) => <ul className="list-disc list-inside mb-3">{children}</ul>,
-                                ol: ({ children }) => <ol className="list-decimal list-inside mb-3">{children}</ol>,
+                                h1: ({ children }) => (
+                                  <h1 className="text-xl font-bold mb-3">{children}</h1>
+                                ),
+                                h2: ({ children }) => (
+                                  <h2 className="text-lg font-bold mb-2">{children}</h2>
+                                ),
+                                h3: ({ children }) => (
+                                  <h3 className="text-base font-bold mb-2">{children}</h3>
+                                ),
+                                ul: ({ children }) => (
+                                  <ul className="list-disc list-inside mb-3">{children}</ul>
+                                ),
+                                ol: ({ children }) => (
+                                  <ol className="list-decimal list-inside mb-3">{children}</ol>
+                                ),
                                 li: ({ children }) => <li className="mb-1">{children}</li>,
                                 code: ({ className, children, ...props }: any) => {
                                   const isInline = !className;
                                   return isInline ? (
-                                    <code className="bg-zinc-100 dark:bg-zinc-700 px-1.5 py-0.5 rounded text-xs font-mono" {...props}>
+                                    <code
+                                      className="bg-zinc-100 dark:bg-zinc-700 px-1.5 py-0.5 rounded text-xs font-mono"
+                                      {...props}
+                                    >
                                       {children}
                                     </code>
                                   ) : (
-                                    <code className="block bg-zinc-100 dark:bg-zinc-700 px-3 py-2 rounded-lg text-xs font-mono overflow-x-auto" {...props}>
+                                    <code
+                                      className="block bg-zinc-100 dark:bg-zinc-700 px-3 py-2 rounded-lg text-xs font-mono overflow-x-auto"
+                                      {...props}
+                                    >
                                       {children}
                                     </code>
                                   );
                                 },
-                                pre: ({ children }) => <pre className="bg-zinc-100 dark:bg-zinc-700 p-3 rounded-lg overflow-x-auto mb-3">{children}</pre>,
+                                pre: ({ children }) => (
+                                  <pre className="bg-zinc-100 dark:bg-zinc-700 p-3 rounded-lg overflow-x-auto mb-3">
+                                    {children}
+                                  </pre>
+                                ),
                                 blockquote: ({ children }) => (
                                   <blockquote className="border-l-4 border-zinc-300 dark:border-zinc-600 pl-3 italic mb-3">
                                     {children}
                                   </blockquote>
                                 ),
                                 a: ({ href, children }) => (
-                                  <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600 underline">
+                                  <a
+                                    href={href}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-500 hover:text-blue-600 underline"
+                                  >
                                     {children}
                                   </a>
                                 ),
-                                strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+                                strong: ({ children }) => (
+                                  <strong className="font-bold">{children}</strong>
+                                ),
                                 em: ({ children }) => <em className="italic">{children}</em>,
                               }}
                             >
@@ -1147,9 +1377,18 @@ export default function ChatPage() {
                 </div>
                 <div className="bg-white dark:bg-zinc-800 rounded-2xl px-5 py-4 border border-zinc-200 dark:border-zinc-700 shadow-sm">
                   <div className="flex gap-1">
-                    <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                    <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                    <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                    <div
+                      className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce"
+                      style={{ animationDelay: '0ms' }}
+                    ></div>
+                    <div
+                      className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce"
+                      style={{ animationDelay: '150ms' }}
+                    ></div>
+                    <div
+                      className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce"
+                      style={{ animationDelay: '300ms' }}
+                    ></div>
                   </div>
                 </div>
               </div>
@@ -1166,6 +1405,7 @@ export default function ChatPage() {
           <div className="relative border border-zinc-200 dark:border-zinc-700 rounded-2xl bg-white dark:bg-zinc-800 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all">
             {/* 输入框 */}
             <textarea
+              ref={inputRef}
               value={input}
               onChange={handleInputChange}
               placeholder="输入消息，按 Enter 发送消息，Shift + Enter 换行"
@@ -1176,7 +1416,7 @@ export default function ChatPage() {
                 minHeight: '120px',
                 maxHeight: '300px',
               }}
-              onKeyDown={(e) => {
+              onKeyDown={e => {
                 // 处理 Enter 键发送消息
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();

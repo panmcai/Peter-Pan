@@ -18,6 +18,8 @@ interface ChatRequest {
   baseUrl: string;
   messages: ChatMessage[];
   apiKey?: string; // 用户自定义的 API Key（可选）
+  deepThink?: boolean; // 是否启用深度思考
+  webSearch?: boolean; // 是否启用联网搜索
 }
 
 // 带超时的 fetch 函数
@@ -48,27 +50,44 @@ async function fetchWithTimeout(
 export async function POST(request: NextRequest) {
   try {
     const body: ChatRequest = await request.json();
-    const { provider, model, baseUrl, messages, apiKey: userApiKey } = body;
+    const { provider, model, baseUrl, messages, apiKey: userApiKey, deepThink, webSearch } = body;
 
     console.log('[Chat API] 收到请求:', { provider, model, messageCount: messages?.length });
 
     // 验证请求参数
     if (!messages || !Array.isArray(messages)) {
-      return NextResponse.json(
-        { error: '消息格式错误' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '消息格式错误' }, { status: 400 });
     }
 
     let response: Response;
 
     if (provider === 'zhipu') {
       // 智谱 AI
-      const requestBody = {
+      const requestBody: any = {
         model: model,
         messages: messages,
         stream: true,
       };
+
+      // 添加深度思考和联网搜索参数
+      if (deepThink) {
+        requestBody.reasoning_config = {
+          type: 'enable',
+        };
+      }
+
+      if (webSearch) {
+        requestBody.tools = [
+          {
+            type: 'web_search',
+            web_search: {
+              search_query: '',
+              search_depth: 'auto',
+              search_result_max_num: 10,
+            },
+          },
+        ];
+      }
 
       // 优先使用用户自定义的 API Key，否则使用环境变量
       const apiKey = userApiKey || ZHIPU_API_KEY;
@@ -81,7 +100,14 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      console.log('[Chat API] 使用智谱 API，模型:', model);
+      console.log(
+        '[Chat API] 使用智谱 API，模型:',
+        model,
+        '深度思考:',
+        deepThink,
+        '联网搜索:',
+        webSearch
+      );
 
       response = await fetchWithTimeout(`${baseUrl}/chat/completions`, {
         method: 'POST',
@@ -101,10 +127,7 @@ export async function POST(request: NextRequest) {
 
       if (!userApiKey) {
         console.error('[Chat API] OpenAI 兼容格式需要提供 API Key');
-        return NextResponse.json(
-          { error: '请提供 API Key' },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: '请提供 API Key' }, { status: 400 });
       }
 
       console.log('[Chat API] 使用 OpenAI 兼容格式，模型:', model);
@@ -177,14 +200,11 @@ export async function POST(request: NextRequest) {
       headers: {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
+        Connection: 'keep-alive',
       },
     });
   } catch (error: any) {
     console.error('[Chat API] 服务器错误:', error);
-    return NextResponse.json(
-      { error: error.message || '服务器内部错误' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message || '服务器内部错误' }, { status: 500 });
   }
 }
