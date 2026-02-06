@@ -97,10 +97,10 @@ const MODEL_PROVIDERS = [
 ];
 
 export default function ModelConfig({ isOpen, onClose, onConfigChange, currentConfig }: ModelConfigProps) {
-  const [selectedProvider, setSelectedProvider] = useState<string>(currentConfig?.provider || 'zhipu');
-  const zhipuProvider = MODEL_PROVIDERS.find(p => p.id === 'zhipu');
-  // 默认模型为 glm-4.7-flash（智谱 AI 的第一个模型）
-  const defaultModel = zhipuProvider?.models[0] || 'glm-4.7-flash';
+  const [selectedProvider, setSelectedProvider] = useState<string>(currentConfig?.provider || 'deepseek');
+  const deepseekProvider = MODEL_PROVIDERS.find(p => p.id === 'deepseek');
+  // 默认模型为 deepseek-chat（DeepSeek 的第一个模型）
+  const defaultModel = deepseekProvider?.models[0] || 'deepseek-chat';
   const [selectedModel, setSelectedModel] = useState<string>(currentConfig?.models[0] || defaultModel);
   const [apiKey, setApiKey] = useState(currentConfig?.apiKey || '');
   const [customBaseUrl, setCustomBaseUrl] = useState(currentConfig?.baseUrl || '');
@@ -175,8 +175,8 @@ export default function ModelConfig({ isOpen, onClose, onConfigChange, currentCo
   const hasApiKey = !!apiKey.trim();
   const savedConfig = savedConfigs[selectedProvider];
 
-  // 判断是否可以使用默认API Key
-  const canUseDefaultKey = selectedProvider === 'zhipu';
+  // 判断是否可以使用默认API Key（支持 DeepSeek 和智谱AI）
+  const canUseDefaultKey = selectedProvider === 'deepseek' || selectedProvider === 'zhipu';
   const isDefaultKeyMode = !hasApiKey && canUseDefaultKey;
 
   if (!isOpen) return null;
