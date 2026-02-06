@@ -4,8 +4,9 @@ import { NextRequest, NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-// 智谱AI API配置
+// API配置
 const ZHIPU_API_KEY = process.env.ZHIPUAI_API_KEY || '';
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || '';
 
 interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
@@ -108,6 +109,35 @@ export async function POST(request: NextRequest) {
         '联网搜索:',
         webSearch
       );
+
+      response = await fetchWithTimeout(`${baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify(requestBody),
+      });
+    } else if (provider === 'deepseek') {
+      // DeepSeek
+      const requestBody: any = {
+        model: model,
+        messages: messages,
+        stream: true,
+      };
+
+      // 优先使用用户自定义的 API Key，否则使用环境变量
+      const apiKey = userApiKey || DEEPSEEK_API_KEY;
+
+      if (!apiKey) {
+        console.error('[Chat API] 未配置 API Key');
+        return NextResponse.json(
+          { error: '未配置 API Key，请在环境变量中设置 DEEPSEEK_API_KEY' },
+          { status: 500 }
+        );
+      }
+
+      console.log('[Chat API] 使用 DeepSeek API，模型:', model);
 
       response = await fetchWithTimeout(`${baseUrl}/chat/completions`, {
         method: 'POST',
