@@ -13,7 +13,26 @@
 [FloatVisualizer](https://panmcai.github.io/FloatVisualizer/)
 
 # 技术框架
-- 聊天：智谱AI glm-4.7-flash
+- 聊天：DeepSeek（默认）/ 智谱AI glm-4.7-flash（备选）
 - 文生图：智谱AI CogView-3-Flash
 - 文生视频：CogVideoX-Flash
 - TTS：Edge-TTS
+
+# 环境配置
+1. 在 `.env.local` 中配置 DeepSeek API Key（推荐）：
+   - 从 https://platform.deepseek.com/ 获取 API Key
+   - 设置 `DEEPSEEK_API_KEY=your_deepseek_api_key_here`
+
+2. 或者配置智谱AI API Key（备选）：
+   - 从 https://open.bigmodel.cn/ 获取 API Key
+   - 设置 `ZHIPUAI_API_KEY=your_zhipuai_api_key_here`
+
+3. 安装依赖：
+```bash
+pnpm install
+```
+
+4. 启动开发服务器：
+```bash
+pnpm dev
+```
