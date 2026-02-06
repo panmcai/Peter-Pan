@@ -8,8 +8,8 @@ export const revalidate = 0;
 const CACHE_KEY = 'ai_events_data';
 const CACHE_DURATION = 3600000; // 1小时
 
-// 智谱AI API配置
-const ZHIPU_API_KEY = process.env.ZHIPUAI_API_KEY || '';
+// DeepSeek API配置
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || '';
 
 interface NewsItem {
   id: string;
@@ -88,13 +88,13 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}, timeout 
   }
 }
 
-// 使用智谱AI生成AI新闻
+// 使用DeepSeek生成AI新闻
 async function fetchAINews(): Promise<NewsItem[]> {
-  console.log('[AI Events] 使用智谱AI生成AI新闻');
+  console.log('[AI Events] 使用DeepSeek生成AI新闻');
 
   // 如果没有配置API Key，使用备用数据
-  if (!ZHIPU_API_KEY) {
-    console.log('[AI Events] 未配置智谱AI API Key，使用备用数据');
+  if (!DEEPSEEK_API_KEY) {
+    console.log('[AI Events] 未配置DeepSeek API Key，使用备用数据');
     return getFallbackNews();
   }
 
@@ -116,14 +116,14 @@ async function fetchAINews(): Promise<NewsItem[]> {
 
 注意：只返回JSON数组，不要有其他内容。`;
 
-    const response = await fetchWithTimeout('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
+    const response = await fetchWithTimeout('https://api.deepseek.com/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${ZHIPU_API_KEY}`,
+        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'glm-4-flash',
+        model: 'deepseek-chat',
         messages: [
           {
             role: 'system',
@@ -137,10 +137,10 @@ async function fetchAINews(): Promise<NewsItem[]> {
         temperature: 0.7,
         max_tokens: 8000,
       }),
-    }, 60000); // 智谱AI API 超时 60 秒
+    }, 60000); // DeepSeek API 超时 60 秒
 
     if (!response.ok) {
-      console.error('[AI Events] 智谱AI API 调用失败:', response.status);
+      console.error('[AI Events] DeepSeek API 调用失败:', response.status);
       return getFallbackNews();
     }
 
@@ -148,7 +148,7 @@ async function fetchAINews(): Promise<NewsItem[]> {
     const content = data.choices[0]?.message?.content;
 
     if (!content) {
-      console.log('[AI Events] 智谱AI返回内容为空，使用备用数据');
+      console.log('[AI Events] DeepSeek返回内容为空，使用备用数据');
       return getFallbackNews();
     }
 
@@ -160,13 +160,13 @@ async function fetchAINews(): Promise<NewsItem[]> {
       const jsonStr = jsonMatch ? jsonMatch[0] : content;
       newsData = JSON.parse(jsonStr);
     } catch (e) {
-      console.error('[AI Events] 解析智谱AI响应失败:', e);
+      console.error('[AI Events] 解析DeepSeek响应失败:', e);
       console.log('[AI Events] 原始内容:', content);
       return getFallbackNews();
     }
 
     if (!Array.isArray(newsData) || newsData.length === 0) {
-      console.log('[AI Events] 智谱AI返回数据格式错误，使用备用数据');
+      console.log('[AI Events] DeepSeek返回数据格式错误，使用备用数据');
       return getFallbackNews();
     }
 
@@ -200,7 +200,7 @@ async function fetchAINews(): Promise<NewsItem[]> {
         id: `${Date.now()}-${index}`,
         title: item.title || 'AI新闻',
         summary: item.summary || '暂无摘要',
-        source: item.source || '智谱AI',
+        source: item.source || 'DeepSeek',
         url: newsUrl,
         publishedAt: new Date().toISOString(),
         category: item.category || 'AI新闻',
@@ -208,10 +208,10 @@ async function fetchAINews(): Promise<NewsItem[]> {
       };
     });
 
-    console.log(`[AI Events] 成功从智谱AI获取 ${news.length} 条新闻`);
+    console.log(`[AI Events] 成功从DeepSeek获取 ${news.length} 条新闻`);
     return news;
   } catch (error) {
-    console.error('[AI Events] 智谱AI调用失败，使用备用数据:', error);
+    console.error('[AI Events] DeepSeek调用失败，使用备用数据:', error);
     return getFallbackNews();
   }
 }
