@@ -103,10 +103,12 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 如果没有提供 apiKey，且是智谱 AI，则使用环境变量
+    // 如果没有提供 apiKey，则使用环境变量
     let finalApiKey = apiKey;
     if (!finalApiKey && provider === 'zhipu') {
       finalApiKey = process.env.ZHIPUAI_API_KEY || '';
+    } else if (!finalApiKey && provider === 'deepseek') {
+      finalApiKey = process.env.DEEPSEEK_API_KEY || '';
     }
 
     if (!provider || !finalApiKey || !model) {
