@@ -41,7 +41,7 @@ export default function ChatPage() {
     {
       role: 'assistant',
       content:
-        '你好！我是 Peter·Pan 的 AI 助手。我可以帮助你回答问题、提供信息或进行创作。\n\n💡 **默认配置**：系统默认使用智谱AI的 glm-4.7-flash 模型，你无需手动配置。\n\n🧠 **深度思考**：点击左侧「深度思考」按钮，AI 会展示详细的推理过程，帮助你理解答案背后的逻辑。\n\n🌐 **联网搜索**：点击左侧「联网搜索」按钮，AI 会先搜索最新信息，确保回答的时效性和准确性。\n\n🎨 **文生图**：选择 CogView-3-Flash 模型，根据你的描述生成精美的图片！\n\n🎬 **文生视频**：选择 CogVideoX-Flash 模型，生成 6-10 秒的短视频，包含同步的语音、音效和背景音乐。\n\n🔊 **TTS 朗读**：点击消息旁的「朗读」按钮，使用浏览器语音合成功能自动朗读内容。你也可以在右上角配置专属音色。\n\n📝 **视频时长**：CogVideoX-Flash 模型生成的视频时长约为 6-10 秒，建议分段描述以获得更好的效果。',
+        '你好！我是 Peter·Pan 的 AI 助手。我可以帮助你回答问题、提供信息或进行创作。\n\n💡 **默认配置**：系统默认使用 DeepSeek 的 deepseek-chat 模型，你无需手动配置。\n\n🧠 **深度思考**：点击左侧「深度思考」按钮，AI 会展示详细的推理过程，帮助你理解答案背后的逻辑。\n\n🌐 **联网搜索**：点击左侧「联网搜索」按钮，AI 会先搜索最新信息，确保回答的时效性和准确性。\n\n🎨 **文生图**：选择 CogView-3-Flash 模型，根据你的描述生成精美的图片！\n\n🎬 **文生视频**：选择 CogVideoX-Flash 模型，生成 6-10 秒的短视频，包含同步的语音、音效和背景音乐。\n\n🔊 **TTS 朗读**：点击消息旁的「朗读」按钮，使用浏览器语音合成功能朗读内容。你也可以在右上角配置专属音色。\n\n📝 **视频时长**：CogVideoX-Flash 模型生成的视频时长约为 6-10 秒，建议分段描述以获得更好的效果。',
       timestamp: new Date(),
     },
   ]);
@@ -156,20 +156,20 @@ export default function ChatPage() {
         return;
       }
 
-      // 使用默认配置：智谱AI，glm-4.7-flash，使用环境变量中的API Key
+      // 使用默认配置：DeepSeek，deepseek-chat，使用环境变量中的API Key
       const defaultConfig: AIModelConfig = {
-        provider: 'zhipu',
-        name: '智谱 AI',
+        provider: 'deepseek',
+        name: 'DeepSeek',
         apiKey: '', // 客户端不直接使用API Key，由后端从环境变量获取
-        baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
-        models: ['glm-4.7-flash'],
+        baseUrl: 'https://api.deepseek.com',
+        models: ['deepseek-chat'],
         enabled: true,
       };
 
       // 保存到 localStorage
       localStorage.setItem('current-model-config', JSON.stringify(defaultConfig));
       setModelConfig(defaultConfig);
-      console.log('[Chat] 使用默认配置: 智谱AI glm-4.7-flash，API Key 将由后端从环境变量获取');
+      console.log('[Chat] 使用默认配置: DeepSeek deepseek-chat，API Key 将由后端从环境变量获取');
     } catch (error) {
       console.error('[Chat] 加载模型配置失败:', error);
     }
@@ -626,56 +626,6 @@ export default function ChatPage() {
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
 
-    // 检查是否是 TTS>> 指令
-    if (input.trim().startsWith('TTS>>')) {
-      console.log('[TTS] 检测到 TTS>> 指令');
-      console.log('[TTS] 当前 ttsSettings:', ttsSettings);
-      console.log('[TTS] 语音列表已加载:', voicesLoaded);
-      console.log('[TTS] 当前可用语音数量:', speechSynthesisRef.current?.getVoices()?.length || 0);
-
-      // 如果语音列表还没有加载完成，等待加载
-      if (!voicesLoaded || speechSynthesisRef.current?.getVoices().length === 0) {
-        console.log('[TTS] 语音列表未加载，等待中...');
-        // 等待语音列表加载
-        const checkVoices = setInterval(() => {
-          const voices = speechSynthesisRef.current?.getVoices();
-          if (voices && voices.length > 0) {
-            clearInterval(checkVoices);
-            setVoicesLoaded(true);
-            console.log('[TTS] 语音列表已加载，重新播放');
-            // 重新触发播放
-            setTimeout(() => {
-              sendMessage();
-            }, 100);
-          }
-        }, 100);
-        return;
-      }
-
-      // 创建用户消息
-      const userMessage: Message = {
-        role: 'user',
-        content: input,
-        timestamp: new Date(),
-      };
-
-      // 添加消息后播放
-      setMessages(prev => {
-        const newMessages = [...prev, userMessage];
-        const newIndex = newMessages.length - 1;
-        setInput('');
-
-        // 等待消息更新后再播放
-        setTimeout(() => {
-          console.log('[TTS] 开始播放 TTS>> 消息，index:', newIndex);
-          playTTS(input, newIndex);
-        }, 100);
-
-        return newMessages;
-      });
-      return;
-    }
-
     // 检查是否配置了模型
     if (!modelConfig) {
       setError('请先配置大模型 API Key');
@@ -823,27 +773,6 @@ export default function ChatPage() {
     } finally {
       setLoading(false);
       abortControllerRef.current = null;
-
-      // 如果是新回复的消息，自动播放语音
-      if (
-        lastMessageIndexRef.current !== undefined &&
-        lastMessageIndexRef.current < messages.length
-      ) {
-        const lastMessage = messages[lastMessageIndexRef.current];
-        if (
-          lastMessage.role === 'assistant' &&
-          lastMessage.content &&
-          lastMessage.content.length > 0
-        ) {
-          // 延迟一下，等待消息完全更新
-          setTimeout(() => {
-            if (lastMessageIndexRef.current !== undefined) {
-              playTTS(lastMessage.content, lastMessageIndexRef.current);
-              lastMessageIndexRef.current = undefined; // 重置标记
-            }
-          }, 500);
-        }
-      }
     }
   };
 
